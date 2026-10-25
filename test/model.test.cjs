@@ -56,6 +56,44 @@ test('a running tool call becomes the focused action and a trace task', () => {
   assert.equal(mind.mapNodes.some(node => node.active), true)
 })
 
+test('surfaces the running tool as an explicit current task', () => {
+  const entries = [
+    user('跑一个长任务'),
+    ev('tool/call', {
+      turn: 1, step: 3, callId: 'c1', name: 'bash',
+      arguments: JSON.stringify({ command: 'sleep 30', description: '等待构建完成' }),
+    }, 3000),
+  ]
+  const mind = deriveMind(entries, { now: 9000, running: true })
+  assert.equal(mind.phase, 'acting')
+  assert.equal(mind.activeTask.status, 'in_progress')
+  assert.equal(mind.activeTask.sourceId, 'c1')
+  assert.match(mind.activeTask.title, /等待构建完成/)
+  assert.equal(mind.tasks.some((task) => task.id === 'c1'), true)
+})
+
+test('keeps the running action visible even when a todo plan is active', () => {
+  const entries = [
+    user('按计划执行'),
+    ev('tool/call', {
+      turn: 1, step: 2, callId: 'p1', name: 'todo_write',
+      arguments: JSON.stringify({ todos: [
+        { content: '整理数据', status: 'completed' },
+        { content: '生成报告', status: 'pending' },
+      ] }),
+    }, 2000),
+    ev('tool/call', {
+      turn: 1, step: 3, callId: 'c7', name: 'bash',
+      arguments: JSON.stringify({ command: 'make report', description: '生成报告文件' }),
+    }, 3000),
+  ]
+  const mind = deriveMind(entries, { now: 5000, running: true })
+  assert.equal(mind.taskSource, 'todo')
+  assert.equal(mind.activeTask.sourceId, 'c7')
+  assert.match(mind.activeTask.title, /生成报告文件/)
+  assert.equal(mind.tasks.some((task) => task.id === 'c7'), false)
+})
+
 test('a failed tool call reports error after the turn settles', () => {
   const entries = [
     user('读配置'),
@@ -140,6 +178,29 @@ test('assistant tool-call plus tool/call is de-duplicated by call id', () => {
   assert.equal(mind.tokens, 12)
 })
 
+test('exposes the latest context-window usage for the total-token metric', () => {
+  const entries = [
+    user('看看当前窗口用量'),
+    ev('assistant/message', {
+      turn: 2, step: 5,
+      message: { role: 'assistant', content: [{ type: 'text', text: '好。' }] },
+      usage: {
+        inputTokens: 142,
+        outputTokens: 197,
+        cacheReadTokens: 162176,
+        cacheWriteTokens: 0,
+        totalTokens: 162515,
+      },
+    }, 5000),
+  ]
+  const mind = deriveMind(entries, { now: 6000, running: false })
+  assert.equal(mind.tokens, 197)
+  assert.equal(mind.contextInput, 142)
+  assert.equal(mind.contextOutput, 197)
+  assert.equal(mind.contextCache, 162176)
+  assert.equal(mind.contextTokens, 162515)
+})
+
 test('turn, step and token totals come from the durable events', () => {
   const entries = [
     ev('turn/start', { turn: 3 }, 1000),
@@ -159,9 +220,56 @@ test('turn, step and token totals come from the durable events', () => {
   assert.equal(mind.answer, '完成了。')
 })
 
+
+test('collects each reasoning step into a process history', () => {
+  const entries = [
+    user('把推理过程展示出来'),
+    ev('assistant/message', {
+      turn: 1, step: 2,
+      message: { role: 'assistant', content: [{ type: 'reasoning', text: '先确认数据来源。' }] },
+    }, 2000),
+    ev('assistant/message', {
+      turn: 1, step: 3,
+      message: { role: 'assistant', content: [{ type: 'reasoning', text: '再决定导图的布局。' }] },
+    }, 3000),
+    { type: 'transient', event: ev('assistant/live-chunk', {
+      attemptId: 'a1', turn: 1, step: 4,
+      chunk: { type: 'reasoning-delta', index: 0, text: '最后开始实现。' },
+    }, 4000) },
+  ]
+  const mind = deriveMind(entries, { now: 5000, running: true })
+  assert.equal(mind.thoughtHistory.length, 3)
+  assert.deepEqual(mind.thoughtHistory.map(item => item.text), [
+    '先确认数据来源。',
+    '再决定导图的布局。',
+    '最后开始实现。',
+  ])
+  assert.equal(mind.thoughtHistory[2].live, true)
+  assert.equal(mind.thoughtHistory[2].step, 4)
+  assert.match(mind.thought, /最后开始实现/)
+})
+
+test('does not duplicate a live tail that matches the durable reasoning', () => {
+  const entries = [
+    user('继续'),
+    ev('assistant/message', {
+      turn: 1, step: 2,
+      message: { role: 'assistant', content: [{ type: 'reasoning', text: '同一段推理。' }] },
+    }, 2000),
+    { type: 'transient', event: ev('assistant/live-chunk', {
+      attemptId: 'a1', turn: 1, step: 2,
+      chunk: { type: 'reasoning-delta', index: 0, text: '同一段推理。' },
+    }, 2100) },
+  ]
+  const mind = deriveMind(entries, { now: 3000, running: true })
+  assert.equal(mind.thoughtHistory.length, 1)
+  assert.equal(mind.thoughtHistory[0].live, true)
+})
+
 test('emptyMind stays a valid idle snapshot', () => {
   const mind = emptyMind({ detail: '自定义' })
   assert.equal(mind.phase, 'idle')
   assert.equal(mind.detail, '自定义')
   assert.deepEqual(mind.tasks, [])
+  assert.deepEqual(mind.thoughtHistory, [])
 })

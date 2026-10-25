@@ -7,30 +7,49 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 ## 预览
 
 <p align="center">
-  <img src="docs/preview-active-dark.png" width="49%" alt="运行中的深色面板">
-  <img src="docs/preview-done-light.png" width="49%" alt="完成态的亮色面板">
+  <img src="docs/preview-active-dark.png" width="32%" alt="运行中的深色面板">
+  <img src="docs/preview-done-light.png" width="32%" alt="完成后的亮色面板">
+  <img src="docs/preview-done-dark.png" width="32%" alt="完成后的深色面板">
 </p>
 
-左：执行操作中的深色面板；右：本轮完成后的亮色面板。
+左：执行中的深色面板；中、右：本轮完成后的亮色与深色面板。标题栏显示 DeepSeek 余额，指标区包含当前窗口总 token，任务导图会把正在执行的工具置顶为 `NOW`。
 
 ## 显示什么
 
 - **实时阶段**：待命 / 等待响应 / 推理中 / 组织回答 / 执行操作 / 本轮完成 / 需要处理。
-- **当前动作**：正在调用的工具、目标文件或命令、轮次、步骤、耗时、生成 token。
+- **当前动作**：正在调用的工具、目标文件或命令、轮次、步骤、耗时、生成 token，以及当前窗口输入/缓存/输出的总 token（悬停可看拆分）。
 - **本轮目标**：最后一条真实用户消息。
-- **当前思路**：模型可见的 reasoning 流；流式输出时实时追加并显示光标。
+- **当前思路**：模型可见的 reasoning 流；流式输出时实时追加并显示光标。标题栏的「推理过程 N」可回放本轮最近 20 段推理；向上翻阅时不会被新输出强制拉回底部。
 - **思路导图**：目标 → 思路 → 最近动作 → 输出，以放射状节点图呈现，当前动作高亮。
-- **任务导图**：优先读取 `todo/write` 的任务清单与完成度；清单超过 40 步未刷新时自动退回真实工具轨迹，并把进度标为「执行进度」，避免展示过期计划。
+- **任务导图**：优先读取 `todo/write` 的任务清单与完成度；清单超过 40 步未刷新时自动退回真实工具轨迹，并把进度标为「执行进度」，避免展示过期计划。当前正在执行的工具会以 `NOW · 进行中` 置顶显示，不依赖它是否出现在待办清单里。
 - **实时进度条**：完成数 / 总数，执行中带流光动画。
+- **充值余额**：标题栏显示 DeepSeek 充值中心的账户余额，点击直达充值页；余额不足时变为警示色。
 - **亮色 / 暗色主题**：默认跟随 DSH 当前外观，也可在标题栏一键切换。
 
-数据来自 `ctx.sessions` 的会话事件窗（durable event + `assistant/live-chunk`），不调用模型、不额外发请求、不在服务端落任何数据。
+数据来自 `ctx.sessions` 的会话事件窗（durable event + `assistant/live-chunk`），不调用模型、不在服务端落任何数据。余额是唯一例外：插件服务端用本机 `DEEPSEEK_API_KEY` 查询官方余额接口，缓存 60 秒；页面每分钟自动刷新，切回页面时立即刷新。仅把币种和金额返回浏览器，密钥不下发。
+
+## 更新日志
+
+### 0.1.5
+
+- **DeepSeek 余额**：标题栏常驻显示充值中心余额，点击直达充值页；服务端用 `DEEPSEEK_API_KEY` 查询并缓存 60 秒，密钥不下发浏览器。
+- **余额自动刷新**：页面每分钟更新一次，切回页面立即刷新；请求失败自动重试。
+- **推理过程回放**：当前思路卡片可展开本轮最近 20 段推理，流式输出时实时追加；向上翻阅时不会被强制拉回底部。
+- **任务导图 NOW**：正在执行的工具置顶为 `NOW · 进行中`，即使它还没写进 todo 清单也会显示。
+- **总 token**：执行进度卡片新增当前窗口输入 / 缓存 / 输出合计，悬停查看拆分。
+- **网关兼容**：余额请求改用相对路径，兼容 fnOS `/app/...` 反向代理前缀。
+- **文档与预览**：重写安装说明，更新运行中 / 完成态、亮色 / 深色三张预览图。
+
+### 0.1.4
+
+- 一屏式 bento 面板：实时阶段、当前动作、本轮目标、当前思路、思路导图、任务导图。
+- 亮色主题、按面板宽度切换的单列布局、会话跟随与自动收起。
 
 ## 布局
 
 右侧栏是一块固定的一屏 dashboard，页面本身不滚动：
 
-- 顶部状态 hero：阶段、当前动作、四项指标、执行进度；
+- 顶部状态 hero：阶段、当前动作、五项指标、执行进度；
 - 2×2 bento：左侧「本轮目标 + 当前思路」，右侧「思路导图 + 任务导图」；
 - 卡片内部各自滚动，长思路、多任务不会把整页撑开；
 - 用容器查询按**面板宽度**（不是浏览器视口）切换：小于 640px 时自动改为单列堆叠，仍然一屏展示全部区块。
@@ -50,24 +69,19 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 
 ## 下载
 
-当前版本：`v0.1.4`
+当前版本：`v0.1.5`
 
 | 文件 | 用途 | 大小 |
 | --- | --- | --- |
-| [完整发布包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.4/dsh-ai-mind-0.1.4-fnos-release.zip) | 插件 + `dsh-better-sidebar` + 安装脚本 + 文章/截图 | 6.7 MB |
-| [纯插件包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.4/dsh-ai-mind-0.1.4.tgz) | 已装好 `dsh-better-sidebar` 时使用 | 24.4 KB |
+| [完整发布包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.5/dsh-ai-mind-0.1.5-fnos-release.zip) | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 7.4 MB |
+| [纯插件包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.5/dsh-ai-mind-0.1.5.tgz) | 已装好 `dsh-better-sidebar` 时使用 | 约 31 KB |
 
 发布页：
 
-- GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.4
-- Gitea（局域网）：http://192.168.3.200:3000/cyberzero/dsh-ai-mind/releases/tag/v0.1.4
+- GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.5
+- Gitea（局域网）：http://192.168.3.200:3000/cyberzero/dsh-ai-mind/releases/tag/v0.1.5
 
-SHA256：
-
-```text
-d20432953c40d029114bfa892a41c008337b3f1cb5a093f37312d1d185c0b467  dsh-ai-mind-0.1.4-fnos-release.zip
-0acaf43c6b4e5d6e1a255e8ba27d0935691c7acae8e888632ecbce16654e99f2  dsh-ai-mind-0.1.4.tgz
-```
+校验值随发布提供，见发布页的 `SHA256SUMS` 附件。
 
 > GitHub 适合公网分享；Gitea 地址只在内网/局域网可访问。
 
@@ -79,17 +93,18 @@ d20432953c40d029114bfa892a41c008337b3f1cb5a093f37312d1d185c0b467  dsh-ai-mind-0.
 - 已安装并启用 `dsh-better-sidebar >= 0.26.0`。插件通过它的公开 `registerTab` API 注册右侧页签。
 - 使用**运行 DSH 的同一系统用户**执行安装命令，避免插件文件归属错误。
 - 首次安装 `dsh-better-sidebar` 的传递依赖需要联网。
+- 余额显示需要 DSH 进程环境里存在 `DEEPSEEK_API_KEY`；未配置时余额显示 `—`，其他功能不受影响。
 
 ### 方式一：完整发布包（推荐）
 
 下载并解压：
 
 ```bash
-curl -L -o dsh-ai-mind-0.1.4-fnos-release.zip \
-  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.4/dsh-ai-mind-0.1.4-fnos-release.zip
+curl -L -o dsh-ai-mind-0.1.5-fnos-release.zip \
+  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.5/dsh-ai-mind-0.1.5-fnos-release.zip
 
-unzip dsh-ai-mind-0.1.4-fnos-release.zip
-cd dsh-ai-mind-0.1.4
+unzip dsh-ai-mind-0.1.5-fnos-release.zip
+cd dsh-ai-mind-0.1.5
 chmod +x install.sh
 ./install.sh web
 ```
@@ -97,7 +112,7 @@ chmod +x install.sh
 `install.sh` 会依次安装：
 
 1. `vendor/dsh-better-sidebar-0.26.0.tgz`
-2. `dsh-ai-mind-0.1.4.tgz`
+2. `dsh-ai-mind-0.1.5.tgz`
 
 如果 profile 不叫 `web`，把 `web` 换成实际名称：
 
@@ -110,24 +125,24 @@ chmod +x install.sh
 已经启用 `dsh-better-sidebar` 时：
 
 ```bash
-curl -L -o dsh-ai-mind-0.1.4.tgz \
-  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.4/dsh-ai-mind-0.1.4.tgz
+curl -L -o dsh-ai-mind-0.1.5.tgz \
+  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.5/dsh-ai-mind-0.1.5.tgz
 
-dsh plugin --profile web add ./dsh-ai-mind-0.1.4.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.5.tgz
 ```
 
 还没装 `dsh-better-sidebar`：
 
 ```bash
 dsh plugin --profile web add dsh-better-sidebar@0.26.0
-dsh plugin --profile web add ./dsh-ai-mind-0.1.4.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.5.tgz
 ```
 
 也可以从完整发布包的 `vendor/` 目录安装离线包：
 
 ```bash
-dsh plugin --profile web add ./dsh-ai-mind-0.1.4/vendor/dsh-better-sidebar-0.26.0.tgz
-dsh plugin --profile web add ./dsh-ai-mind-0.1.4/dsh-ai-mind-0.1.4.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.5/vendor/dsh-better-sidebar-0.26.0.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.5/dsh-ai-mind-0.1.5.tgz
 ```
 
 ### 方式三：从源码安装（开发）
@@ -176,7 +191,7 @@ dsh --profile web --dump-config
 ## 打包分发
 
 ```bash
-npm pack                 # 生成 dsh-ai-mind-0.1.4.tgz，prepack 会自动重建 lib/client.js
+npm pack                 # 生成 dsh-ai-mind-0.1.5.tgz，prepack 会自动重建 lib/client.js
 ```
 
 发布包（zip）还包含 `dsh-better-sidebar` 安装包、`install.sh`、文章和截图。包内只含 `lib/`、`cordis.patch.yml`、`README.md`、`LICENSE` 和 `package.json`；`src/`、测试不进入 npm 分发包。

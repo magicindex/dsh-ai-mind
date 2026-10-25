@@ -165,11 +165,13 @@ function describeTool(name, args) {
 }
 
 function readUsage(usage) {
-  if (!isObject(usage)) return { output: 0, input: 0 }
-  return {
-    output: Number(usage.outputTokens) || 0,
-    input: Number(usage.inputTokens) || 0,
-  }
+  if (!isObject(usage)) return { output: 0, input: 0, cacheRead: 0, cacheWrite: 0, total: 0 }
+  const output = Number(usage.outputTokens) || 0
+  const input = Number(usage.inputTokens) || 0
+  const cacheRead = Number(usage.cacheReadTokens) || 0
+  const cacheWrite = Number(usage.cacheWriteTokens) || 0
+  const total = Number(usage.totalTokens) || input + output + cacheRead + cacheWrite
+  return { output, input, cacheRead, cacheWrite, total }
 }
 
 function isTodoTool(name) {
@@ -236,10 +238,12 @@ function deriveMind(entries, options = {}) {
   let lastAssistant = null
   let lastAssistantStep = -1
   let totalOutput = 0
+  let windowUsage = null
   let todos = null
   let lastTodoStep = -1
   const tools = []
   const byCall = new Map()
+  const reasoningHistory = []
 
   for (const event of tail) {
     const data = event.data || {}
@@ -255,7 +259,21 @@ function deriveMind(entries, options = {}) {
       lastAssistantStep = data.step || 0
       const usage = readUsage(data.usage ?? data.message?.usage)
       totalOutput += usage.output
+      windowUsage = usage
       const parts = assistantParts(data.message)
+      if (parts.reasoning) {
+        const text = collapse(parts.reasoning, 900)
+        const prev = reasoningHistory[reasoningHistory.length - 1]
+        if (!prev || prev.text !== text) {
+          reasoningHistory.push({
+            turn: data.turn || turn,
+            step: data.step || step,
+            time,
+            text,
+            live: false,
+          })
+        }
+      }
       for (const call of parts.tools) {
         if (!call.name) continue
         const id = call.id || `${event.seq || time}:${call.name}`
@@ -342,6 +360,7 @@ function deriveMind(entries, options = {}) {
   let liveToolName = ''
   let liveToolArgs = ''
   let liveStep = 0
+  let liveTurn = 0
   let liveAt = 0
   for (const event of live) {
     const data = event.data || {}
@@ -349,6 +368,7 @@ function deriveMind(entries, options = {}) {
     if (!chunk) continue
     liveAt = Math.max(liveAt, Number(event.time) || 0)
     if (data.step) liveStep = data.step
+    if (data.turn) liveTurn = data.turn
     if (chunk.type === 'block-start') {
       liveBlocks.set(chunk.index, {
         kind: chunk.blockType || '',
@@ -397,6 +417,21 @@ function deriveMind(entries, options = {}) {
     else if (block.text) liveText += block.text
   }
   if (liveStep > step) step = liveStep
+  if (liveReasoning) {
+    const text = collapse(liveReasoning, 900)
+    const prev = reasoningHistory[reasoningHistory.length - 1]
+    if (prev && prev.text === text) prev.live = true
+    else {
+      reasoningHistory.push({
+        turn: liveTurn || turn,
+        step: liveStep || step,
+        time: liveAt || now,
+        text,
+        live: true,
+      })
+    }
+  }
+  const thoughtHistory = reasoningHistory.filter((item) => item.text).slice(-20)
 
   const assistant = assistantParts(lastAssistant?.data?.message)
   const reasoning = liveReasoning || assistant.reasoning
@@ -486,6 +521,16 @@ function deriveMind(entries, options = {}) {
         }
       })
   }
+  const activeTask =
+    phase === 'acting' && focusTool
+      ? {
+          id: `active-${focusTool.id}`,
+          sourceId: focusTool.id,
+          title: describeTool(focusTool.name, focusTool.args).detail,
+          tool: focusTool.name,
+          status: 'in_progress',
+        }
+      : null
   const completed = tasks.filter((task) => task.status === 'completed').length
   const progress = tasks.length ? Math.round((completed / tasks.length) * 100) : 0
 
@@ -539,12 +584,14 @@ function deriveMind(entries, options = {}) {
     step: currentStep || 1,
     thought,
     thoughtBits,
+    thoughtHistory,
     thoughtLive: Boolean(liveReasoning),
     answer: collapse(answer, 700),
     tools,
     focusTool,
     focus: focus ? { label: focus.label, target: focus.target, detail: focus.detail, name: focus.name } : null,
     tasks,
+    activeTask,
     taskSource,
     todoStale,
     progress,
@@ -554,6 +601,10 @@ function deriveMind(entries, options = {}) {
     mapNodes,
     elapsed,
     tokens: totalOutput,
+    contextTokens: windowUsage?.total || 0,
+    contextInput: windowUsage?.input || 0,
+    contextOutput: windowUsage?.output || 0,
+    contextCache: (windowUsage?.cacheRead || 0) + (windowUsage?.cacheWrite || 0),
     lastEventTime,
     error: lastIsFailure ? lastTool?.error || lastTool?.result || '工具执行失败' : '',
   }
@@ -573,12 +624,14 @@ function emptyMind(overrides = {}) {
     step: 1,
     thought: '',
     thoughtBits: [],
+    thoughtHistory: [],
     thoughtLive: false,
     answer: '',
     tools: [],
     focusTool: null,
     focus: null,
     tasks: [],
+    activeTask: null,
     taskSource: 'trace',
     todoStale: false,
     progress: 0,
@@ -588,6 +641,10 @@ function emptyMind(overrides = {}) {
     mapNodes: [{ id: 'idle', kind: 'now', label: '待命', text: '等待 AI 开始工作', status: 'idle', active: false }],
     elapsed: 0,
     tokens: 0,
+    contextTokens: 0,
+    contextInput: 0,
+    contextOutput: 0,
+    contextCache: 0,
     lastEventTime: 0,
     error: '',
     ...overrides,

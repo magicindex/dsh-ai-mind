@@ -34,7 +34,14 @@ const ICONS = {
   pause: ['M9 5v14', 'M15 5v14'],
   sun: ['M12 8a4 4 0 100 8 4 4 0 000-8z', 'M12 2v2', 'M12 20v2', 'M2 12h2', 'M20 12h2', 'M4.9 4.9l1.4 1.4', 'M17.7 17.7l1.4 1.4', 'M19.1 4.9l-1.4 1.4', 'M6.3 17.7l-1.4 1.4'],
   moon: ['M20 14.5A8.5 8.5 0 019.5 4 7 7 0 1020 14.5z'],
+  wallet: ['M4 7h16v12H4z', 'M4 10h16', 'M15 14h3v3h-3z'],
 }
+
+const BALANCE_PATH = 'dsh-ai-mind/balance'
+const TOP_UP_URL = 'https://platform.deepseek.com/top_up'
+const BALANCE_REFRESH_MS = 60_000
+let balanceCache = null
+let balanceRequest = null
 
 const PHASE_ICON = {
   idle: 'spark',
@@ -58,6 +65,13 @@ function fmtDuration(ms) {
   if (minutes < 60) return `${minutes}:${String(seconds).padStart(2, '0')}`
   const hours = Math.floor(minutes / 60)
   return `${hours}:${String(minutes % 60).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+function fmtClock(ms) {
+  const n = Number(ms)
+  if (!n) return ''
+  const d = new Date(n)
+  return `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}:${String(d.getSeconds()).padStart(2, '0')}`
 }
 
 function fmtTokens(value) {
@@ -103,7 +117,7 @@ function Orb({ name, size = 'md' }) {
   )
 }
 
-function SectionHead({ icon, title, hint, live }) {
+function SectionHead({ icon, title, hint, live, right }) {
   return h(
     'div',
     { className: 'aim-sec-head' },
@@ -111,6 +125,7 @@ function SectionHead({ icon, title, hint, live }) {
     h('span', { className: 'aim-sec-title' }, title),
     hint ? h('span', { className: 'aim-sec-hint' }, hint) : null,
     live ? h('span', { className: 'aim-sec-live' }, h('i'), 'STREAM') : null,
+    right || null,
   )
 }
 
@@ -161,6 +176,87 @@ function useAimTheme() {
   }
 
   return { mode: state.mode, toggle }
+}
+
+function loadBalance(force) {
+  if (!force && balanceCache && Date.now() - balanceCache.at < 60_000) {
+    return Promise.resolve(balanceCache.value)
+  }
+  if (balanceRequest) return balanceRequest
+  balanceRequest = fetch(BALANCE_PATH, { cache: 'no-store', headers: { Accept: 'application/json' } })
+    .then(async (response) => {
+      const data = await response.json().catch(() => null)
+      if (!response.ok || !data?.ok) {
+        const error = new Error(data?.reason || `HTTP ${response.status}`)
+        error.reason = data?.reason || 'http'
+        throw error
+      }
+      balanceCache = { at: Date.now(), value: data }
+      return data
+    })
+    .finally(() => {
+      balanceRequest = null
+    })
+  return balanceRequest
+}
+
+function useDeepSeekBalance() {
+  const [state, setState] = useState({ status: 'loading' })
+
+  useEffect(() => {
+    let alive = true
+    let retry = null
+    const load = (force) => {
+      if (retry) {
+        clearTimeout(retry)
+        retry = null
+      }
+      loadBalance(force)
+        .then((data) => {
+          if (alive) setState({ status: 'ready', data })
+        })
+        .catch((error) => {
+          if (!alive) return
+          setState({ status: 'error', reason: error?.reason || 'network' })
+          // The balance route arrives with a host restart; keep trying while
+          // the server is still booting or a transient upstream error clears.
+          retry = setTimeout(() => load(true), 15_000)
+        })
+    }
+    load(false)
+    const timer = setInterval(() => {
+      if (document.visibilityState === 'visible') load(true)
+    }, BALANCE_REFRESH_MS)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') load(true)
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      alive = false
+      clearInterval(timer)
+      if (retry) clearTimeout(retry)
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [])
+
+  return state
+}
+
+function walletDisplay(data) {
+  const wallets = Array.isArray(data?.balances) ? data.balances : []
+  const main = wallets.find((wallet) => wallet.currency === 'CNY') || wallets[0]
+  if (!main) return null
+  const total = Number(main.total)
+  const amount = Number.isFinite(total) ? total.toFixed(2) : String(main.total || '0')
+  const symbol = main.currency === 'CNY' ? '¥' : '$'
+  const detail = wallets
+    .map((wallet) => `${wallet.currency} ${wallet.total}（充值 ${wallet.toppedUp} · 赠送 ${wallet.granted}）`)
+    .join('\n')
+  return {
+    text: `${symbol}${amount}`,
+    title: `DeepSeek 充值中心余额\n${detail}\n点击打开充值中心`,
+    low: Number(main.total) <= 0 || data?.available === false,
+  }
 }
 
 function useSessionMind(ctx, sessionId, visible) {
@@ -366,8 +462,10 @@ function ThoughtMap({ nodes, phaseLabel }) {
 }
 
 function TaskMap({ mind }) {
-  const tasks = mind.tasks.slice(0, 8)
-  const hidden = Math.max(0, mind.tasks.length - tasks.length)
+  const active = mind.activeTask || null
+  const allTasks = active ? mind.tasks.filter((task) => task.id !== active.sourceId) : mind.tasks
+  const tasks = allTasks.slice(0, 8)
+  const hidden = Math.max(0, allTasks.length - tasks.length)
   const labels = { completed: '完成', in_progress: '进行中', pending: '待办', error: '异常' }
 
   return h(
@@ -389,6 +487,24 @@ function TaskMap({ mind }) {
         h('div', { className: 'aim-task-title' }, mind.promptShort || '等待指令'),
       ),
     ),
+    active
+      ? h(
+          'div',
+          { className: 'aim-task is-in_progress is-active aim-task-live' },
+          h('span', { className: 'aim-task-rail' }, h('span', { className: 'aim-rail-dot' })),
+          h(
+            'div',
+            { className: 'aim-task-body' },
+            h(
+              'div',
+              { className: 'aim-task-top' },
+              h('span', { className: 'aim-task-index' }, 'NOW'),
+              h('span', { className: 'aim-task-state is-in_progress' }, '进行中'),
+            ),
+            h('div', { className: 'aim-task-title' }, active.title),
+          ),
+        )
+      : null,
     tasks.length
       ? tasks.map((task, index) =>
           h(
@@ -445,6 +561,32 @@ function AiMindView(props) {
   const sessionId = scope?.sessionId
   const { mind, ready, error } = useSessionMind(ctx, sessionId, visible)
   const { mode: theme, toggle: toggleTheme } = useAimTheme()
+  const [showProcess, setShowProcess] = useState(false)
+  const processRef = useRef(null)
+  const stickRef = useRef(true)
+  const thoughtHistory = Array.isArray(mind.thoughtHistory) ? mind.thoughtHistory : []
+  const canShowProcess = thoughtHistory.length > 1
+  const balance = useDeepSeekBalance()
+  const wallet = balance.status === 'ready' ? walletDisplay(balance.data) : null
+  const balanceTitle =
+    balance.status === 'loading'
+      ? '正在读取 DeepSeek 充值中心余额'
+      : balance.status === 'error'
+        ? balance.reason === 'no-key'
+          ? '未配置 DEEPSEEK_API_KEY，点击打开充值中心'
+          : '余额读取失败，点击打开充值中心'
+        : wallet?.title || '点击打开 DeepSeek 充值中心'
+
+  useEffect(() => {
+    setShowProcess(false)
+    stickRef.current = true
+  }, [sessionId])
+
+  useEffect(() => {
+    const el = processRef.current
+    if (!showProcess || !el) return
+    if (stickRef.current) el.scrollTop = el.scrollHeight
+  }, [showProcess, thoughtHistory.length, mind.thought])
 
   if (!ready) return h(Skeleton)
 
@@ -481,6 +623,20 @@ function AiMindView(props) {
       h(
         'div',
         { className: 'aim-head-actions' },
+        h(
+          'a',
+          {
+            className: cx('aim-balance', balance.status === 'loading' && 'is-loading', wallet?.low && 'is-low'),
+            href: TOP_UP_URL,
+            target: '_blank',
+            rel: 'noreferrer',
+            title: balanceTitle,
+            'aria-label': balanceTitle.replace(/\n/g, '，'),
+          },
+          h(Icon, { name: 'wallet', size: 11 }),
+          h('span', { className: 'aim-balance-label' }, '余额'),
+          h('b', null, balance.status === 'loading' ? '…' : wallet?.text || '—'),
+        ),
         h(
           'button',
           {
@@ -532,6 +688,15 @@ function AiMindView(props) {
         h('div', { className: 'aim-metric' }, h('span', null, '步骤'), h('b', null, mind.phase === 'idle' || mind.step < 0 ? '—' : String(mind.step))),
         h('div', { className: 'aim-metric' }, h('span', null, '耗时'), h('b', null, mind.phase === 'idle' ? '—' : fmtDuration(liveSeconds))),
         h('div', { className: 'aim-metric' }, h('span', null, '生成'), h('b', null, fmtTokens(mind.tokens))),
+        h(
+          'div',
+          {
+            className: 'aim-metric aim-metric-total',
+            title: `输入 ${fmtTokens(mind.contextInput)} · 缓存 ${fmtTokens(mind.contextCache)} · 输出 ${fmtTokens(mind.contextOutput)}`,
+          },
+          h('span', null, '总 token'),
+          h('b', null, mind.phase === 'idle' || !mind.contextTokens ? '—' : fmtTokens(mind.contextTokens)),
+        ),
       ),
       h(
         'div',
@@ -562,19 +727,72 @@ function AiMindView(props) {
     h(
       'section',
       { className: 'aim-card aim-thought-card aim-sec', style: { animationDelay: '100ms' } },
-      h(SectionHead, { icon: 'think', title: '当前思路', live: mind.thoughtLive }),
-      hasMind && mind.thought
+      h(SectionHead, {
+        icon: 'think',
+        title: showProcess && canShowProcess ? '推理过程' : '当前思路',
+        live: mind.thoughtLive,
+        right: canShowProcess
+          ? h(
+              'button',
+              {
+                type: 'button',
+                className: cx('aim-process-toggle', showProcess && 'is-on'),
+                onClick: () => {
+                  stickRef.current = true
+                  setShowProcess((value) => !value)
+                },
+                title: showProcess ? '返回当前思路' : '查看本轮完整推理过程',
+                'aria-pressed': showProcess,
+              },
+              h(Icon, { name: 'think', size: 10 }),
+              h('span', null, showProcess ? '返回当前' : `推理过程 ${thoughtHistory.length}`),
+            )
+          : null,
+      }),
+      showProcess && canShowProcess
         ? h(
             'div',
-            { className: 'aim-thought' },
-            h('p', null, mind.thought, mind.thoughtLive ? h('span', { className: 'aim-caret' }) : null),
+            {
+              className: 'aim-process',
+              ref: processRef,
+              role: 'list',
+              'aria-label': '本轮 AI 推理过程',
+              onScroll: () => {
+                const el = processRef.current
+                if (el) stickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 36
+              },
+            },
+            thoughtHistory.map((item, index) =>
+              h(
+                'article',
+                {
+                  key: `${item.time || 0}-${index}`,
+                  className: cx('aim-process-item', item.live && 'is-live'),
+                  role: 'listitem',
+                },
+                h(
+                  'div',
+                  { className: 'aim-process-meta' },
+                  h('span', { className: 'aim-process-step' }, item.live ? '正在推理' : `步骤 ${item.step || '—'}`),
+                  item.live ? h('em', null, 'LIVE') : null,
+                  h('time', null, fmtClock(item.time)),
+                ),
+                h('p', null, item.text),
+              ),
+            ),
           )
-        : h(
-            'div',
-            { className: 'aim-thought is-empty' },
-            h('p', null, mind.phase === 'acting' ? '执行阶段，思路会在模型下一次推理时出现。' : '模型尚未产生可见推理。'),
-          ),
-      mind.thoughtBits.length > 1
+        : hasMind && mind.thought
+          ? h(
+              'div',
+              { className: 'aim-thought' },
+              h('p', null, mind.thought, mind.thoughtLive ? h('span', { className: 'aim-caret' }) : null),
+            )
+          : h(
+              'div',
+              { className: 'aim-thought is-empty' },
+              h('p', null, mind.phase === 'acting' ? '执行阶段，思路会在模型下一次推理时出现。' : '模型尚未产生可见推理。'),
+            ),
+      !showProcess && mind.thoughtBits.length > 1
         ? h(
             'div',
             { className: 'aim-chips' },
