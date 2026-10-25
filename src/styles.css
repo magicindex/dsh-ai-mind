@@ -1736,3 +1736,25 @@
   background: rgba(255, 255, 255, 0.86);
   box-shadow: 0 2px 7px rgba(23, 37, 66, 0.05);
 }
+
+/* codex-ui duplicates DSH's native turn navigator; prefer the native rail. */
+html[data-dcu-official-turn-navigator-supported="true"] .dcu-turn-navigator {
+  display: none !important;
+}
+
+/* If the codex-ui rail is the active one, keep its native <ol>/<button>
+   fallback from leaking list markers and browser button chrome. */
+.dcu-turn-navigator .dcu-turn-list {
+  list-style: none !important;
+  margin: 0 !important;
+  padding: 4px 0 !important;
+  width: 16px !important;
+}
+
+.dcu-turn-navigator .dcu-turn-link {
+  width: 16px !important;
+  height: 8px !important;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+}
