@@ -50,8 +50,17 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 
 ## 下载
 
-- [完整发布包（含 `dsh-better-sidebar`、安装脚本、文章与截图）](dist/dsh-ai-mind-0.1.4-fnos-release.zip) · 6.7 MB
-- [纯插件包](dist/dsh-ai-mind-0.1.4.tgz) · 24.4 KB
+当前版本：`v0.1.4`
+
+| 文件 | 用途 | 大小 |
+| --- | --- | --- |
+| [完整发布包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.4/dsh-ai-mind-0.1.4-fnos-release.zip) | 插件 + `dsh-better-sidebar` + 安装脚本 + 文章/截图 | 6.7 MB |
+| [纯插件包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.4/dsh-ai-mind-0.1.4.tgz) | 已装好 `dsh-better-sidebar` 时使用 | 24.4 KB |
+
+发布页：
+
+- GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.4
+- Gitea（局域网）：http://192.168.3.200:3000/cyberzero/dsh-ai-mind/releases/tag/v0.1.4
 
 SHA256：
 
@@ -60,39 +69,109 @@ d20432953c40d029114bfa892a41c008337b3f1cb5a093f37312d1d185c0b467  dsh-ai-mind-0.
 0acaf43c6b4e5d6e1a255e8ba27d0935691c7acae8e888632ecbce16654e99f2  dsh-ai-mind-0.1.4.tgz
 ```
 
+> GitHub 适合公网分享；Gitea 地址只在内网/局域网可访问。
+
 ## 安装
 
-前置：DSH `0.2.0-rc.2` 左右版本。插件通过 `dsh-better-sidebar` 的公开 `registerTab` API 注册右侧页签，因此两者都要安装。
+### 前置条件
 
-**推荐：使用发布包（已附带依赖）**
+- DSH `0.2.0-rc.2` 左右版本。
+- 已安装并启用 `dsh-better-sidebar >= 0.26.0`。插件通过它的公开 `registerTab` API 注册右侧页签。
+- 使用**运行 DSH 的同一系统用户**执行安装命令，避免插件文件归属错误。
+- 首次安装 `dsh-better-sidebar` 的传递依赖需要联网。
 
-解压发布 zip 后执行：
+### 方式一：完整发布包（推荐）
+
+下载并解压：
 
 ```bash
+curl -L -o dsh-ai-mind-0.1.4-fnos-release.zip \
+  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.4/dsh-ai-mind-0.1.4-fnos-release.zip
+
+unzip dsh-ai-mind-0.1.4-fnos-release.zip
+cd dsh-ai-mind-0.1.4
+chmod +x install.sh
 ./install.sh web
 ```
 
-`install.sh` 会先安装随包附带的 `dsh-better-sidebar-0.26.0.tgz`，再安装 `dsh-ai-mind-0.1.4.tgz`。完成后重启 `dsh web`。
+`install.sh` 会依次安装：
 
-**手动安装**
+1. `vendor/dsh-better-sidebar-0.26.0.tgz`
+2. `dsh-ai-mind-0.1.4.tgz`
+
+如果 profile 不叫 `web`，把 `web` 换成实际名称：
 
 ```bash
-dsh plugin --profile web add ./vendor/dsh-better-sidebar-0.26.0.tgz
+./install.sh <profile>
+```
+
+### 方式二：只装插件包
+
+已经启用 `dsh-better-sidebar` 时：
+
+```bash
+curl -L -o dsh-ai-mind-0.1.4.tgz \
+  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.4/dsh-ai-mind-0.1.4.tgz
+
 dsh plugin --profile web add ./dsh-ai-mind-0.1.4.tgz
 ```
 
-> `dsh-better-sidebar` 的传递依赖由 pnpm 从 npm 源补齐，因此首次安装需要联网。若目标机器无法联网，请先把依赖装好，或把完整 `node_modules` 一并同步。
+还没装 `dsh-better-sidebar`：
 
-安装后重启 `dsh web`。插件会：
+```bash
+dsh plugin --profile web add dsh-better-sidebar@0.26.0
+dsh plugin --profile web add ./dsh-ai-mind-0.1.4.tgz
+```
 
-1. 通过 `dsh.bundle.patch` 挂载宿主占位；
-2. 由 `dsh.client` 加载浏览器半边；
-3. 用 `ctx.betterSidebar.registerTab` 注册右侧栏页签 `AI 心流`；
-4. 在当前会话首次挂载时自动打开；手动关闭后不会再次抢焦点。
+也可以从完整发布包的 `vendor/` 目录安装离线包：
 
-也可以从右侧栏的 `+` 菜单里随时打开。
+```bash
+dsh plugin --profile web add ./dsh-ai-mind-0.1.4/vendor/dsh-better-sidebar-0.26.0.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.4/dsh-ai-mind-0.1.4.tgz
+```
 
-> 若 `dsh plugin add` 被 pnpm 的 `minimumReleaseAge` 策略拦住（本机出现过 `billion-context` 触发），可直接把本包加入 profile 的 `dependencies` 与 `dsh.profile.bundles`，再运行 `dsh --profile web --dump-config` 重新生成 `cordis.yml`。
+### 方式三：从源码安装（开发）
+
+```bash
+git clone https://github.com/magicindex/dsh-ai-mind.git
+cd dsh-ai-mind
+npm run build
+dsh plugin --profile web add .
+```
+
+### 重启并确认
+
+安装完成后重启 DSH：
+
+```bash
+dsh web
+```
+
+重启后打开一个**已有内容的会话**，右侧栏会自动出现「AI 心流」页签。若之前手动关闭过，可从右侧栏的 `+` 菜单重新打开。
+
+空白会话（首页 / New task）不会自动打开面板，这是刻意设计，避免无内容的 panel 挤占布局。
+
+### 常见问题
+
+**`dsh plugin add` 被 `minimumReleaseAge` 拦住**
+
+本机安装时出现过 `billion-context` 触发该策略。可临时放行，或手动把插件写入 profile 的 `dependencies` 和 `dsh.profile.bundles`，再执行：
+
+```bash
+dsh --profile web --dump-config
+```
+
+重新生成 `cordis.yml` 后重启。
+
+**重启后没有「AI 心流」**
+
+- 确认 `dsh-better-sidebar` 已安装并在 profile 中启用；
+- 确认当前是已有内容的会话，而不是空白首页；
+- 完全重启 `dsh web`，仅刷新浏览器不会重新加载宿主插件。
+
+**面板显示但内容不更新**
+
+面板订阅的是当前会话的 `ctx.sessions` 事件窗；切换会话后会重新订阅。若仍不更新，先确认 DSH 版本与插件版本匹配。
 
 ## 打包分发
 
