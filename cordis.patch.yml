@@ -1,0 +1,4 @@
+# dsh-ai-mind：宿主侧只做挂载占位；界面完全由 client 半边注册到右侧栏。
+- insert:
+    - id: dsh-ai-mind
+      name: dsh-ai-mind
