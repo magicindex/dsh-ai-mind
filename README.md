@@ -48,6 +48,18 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 - 如果从会话切回 New task，残留在空白会话里的「AI 心流」会自动收起，左侧栏目和顶部恢复原宽度；
 - 手动关闭后，该会话不会再次自动打开；切到别的会话仍会正常出现。
 
+## 下载
+
+- [完整发布包（含 `dsh-better-sidebar`、安装脚本、文章与截图）](dist/dsh-ai-mind-0.1.4-fnos-release.zip) · 6.7 MB
+- [纯插件包](dist/dsh-ai-mind-0.1.4.tgz) · 24.4 KB
+
+SHA256：
+
+```text
+d20432953c40d029114bfa892a41c008337b3f1cb5a093f37312d1d185c0b467  dsh-ai-mind-0.1.4-fnos-release.zip
+0acaf43c6b4e5d6e1a255e8ba27d0935691c7acae8e888632ecbce16654e99f2  dsh-ai-mind-0.1.4.tgz
+```
+
 ## 安装
 
 前置：DSH `0.2.0-rc.2` 左右版本。插件通过 `dsh-better-sidebar` 的公开 `registerTab` API 注册右侧页签，因此两者都要安装。
