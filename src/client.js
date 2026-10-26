@@ -631,18 +631,31 @@ function AiMindView(props) {
         'div',
         { className: 'aim-head-actions' },
         h(
-          'a',
-          {
-            className: cx('aim-balance', balance.status === 'loading' && 'is-loading', wallet?.low && 'is-low'),
-            href: TOP_UP_URL,
-            target: '_blank',
-            rel: 'noreferrer',
-            title: balanceTitle,
-            'aria-label': balanceTitle.replace(/\n/g, '，'),
-          },
-          h(Icon, { name: 'wallet', size: 11 }),
-          h('span', { className: 'aim-balance-label' }, '余额'),
-          h('b', null, balance.status === 'loading' ? '…' : wallet?.text || '—'),
+          'div',
+          { className: 'aim-wallet' },
+          h(
+            'a',
+            {
+              className: 'aim-topup',
+              href: TOP_UP_URL,
+              target: '_blank',
+              rel: 'noreferrer',
+              title: '打开 DeepSeek 充值中心',
+              'aria-label': '打开 DeepSeek 充值中心',
+            },
+            '充值',
+          ),
+          h('span', { className: 'aim-wallet-sep', 'aria-hidden': 'true' }, '\\'),
+          h(
+            'span',
+            {
+              className: cx('aim-balance', balance.status === 'loading' && 'is-loading', wallet?.low && 'is-low'),
+              title: balanceTitle.replace(/\n点击打开充值中心$/, ''),
+            },
+            h(Icon, { name: 'wallet', size: 11 }),
+            h('span', { className: 'aim-balance-label' }, '余额'),
+            h('b', null, balance.status === 'loading' ? '…' : wallet?.text || '—'),
+          ),
         ),
         h(
           'button',

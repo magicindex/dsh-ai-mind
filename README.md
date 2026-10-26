@@ -23,12 +23,17 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 - **思路导图**：目标 → 思路 → 最近动作 → 输出，以放射状节点图呈现，当前动作高亮。
 - **任务导图**：优先读取 `todo/write` 的任务清单与完成度；清单超过 40 步未刷新时自动退回真实工具轨迹，并把进度标为「执行进度」，避免展示过期计划。当前正在执行的工具会以 `NOW · 进行中` 置顶显示，不依赖它是否出现在待办清单里。
 - **实时进度条**：完成数 / 总数，执行中带流光动画。
-- **充值余额**：标题栏显示 DeepSeek 充值中心的账户余额，点击直达充值页；余额不足时变为警示色。
+- **充值入口与余额**：标题栏「充值」按钮直达 DeepSeek 充值中心，旁边只读显示账户余额；余额不足时余额变警示色。
 - **亮色 / 暗色主题**：默认跟随 DSH 当前外观，也可在标题栏一键切换。
 
 数据来自 `ctx.sessions` 的会话事件窗（durable event + `assistant/live-chunk`），不调用模型、不在服务端落任何数据。余额是唯一例外：插件服务端用本机 `DEEPSEEK_API_KEY` 查询官方余额接口，缓存 60 秒；页面每分钟自动刷新，切回页面时立即刷新。仅把币种和金额返回浏览器，密钥不下发。
 
 ## 更新日志
+
+### 0.1.7
+
+- **充值按钮**：标题栏余额区拆成「充值 \ 余额」；`充值` 改为强调色按钮，点击直达 DeepSeek 充值中心。
+- **余额只读**：`余额 ¥x` 只展示金额，不再整块可点；悬停仍显示查询时间与充值入口提示。
 
 ### 0.1.6
 
@@ -74,17 +79,17 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 
 ## 下载
 
-当前版本：`v0.1.6`
+当前版本：`v0.1.7`
 
 | 文件 | 用途 | 大小 |
 | --- | --- | --- |
-| [完整发布包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.6/dsh-ai-mind-0.1.6-fnos-release.zip) | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 7.4 MB |
-| [纯插件包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.6/dsh-ai-mind-0.1.6.tgz) | 已装好 `dsh-better-sidebar` 时使用 | 约 31 KB |
+| [完整发布包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.7/dsh-ai-mind-0.1.7-fnos-release.zip) | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 7.4 MB |
+| [纯插件包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.7/dsh-ai-mind-0.1.7.tgz) | 已装好 `dsh-better-sidebar` 时使用 | 约 31 KB |
 
 发布页：
 
-- GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.6
-- Gitea（局域网）：http://192.168.3.200:3000/cyberzero/dsh-ai-mind/releases/tag/v0.1.6
+- GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.7
+- Gitea（局域网）：http://192.168.3.200:3000/cyberzero/dsh-ai-mind/releases/tag/v0.1.7
 
 校验值随发布提供，见发布页的 `SHA256SUMS` 附件。
 
@@ -105,11 +110,11 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 下载并解压：
 
 ```bash
-curl -L -o dsh-ai-mind-0.1.6-fnos-release.zip \
-  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.6/dsh-ai-mind-0.1.6-fnos-release.zip
+curl -L -o dsh-ai-mind-0.1.7-fnos-release.zip \
+  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.7/dsh-ai-mind-0.1.7-fnos-release.zip
 
-unzip dsh-ai-mind-0.1.6-fnos-release.zip
-cd dsh-ai-mind-0.1.6
+unzip dsh-ai-mind-0.1.7-fnos-release.zip
+cd dsh-ai-mind-0.1.7
 chmod +x install.sh
 ./install.sh web
 ```
@@ -117,7 +122,7 @@ chmod +x install.sh
 `install.sh` 会依次安装：
 
 1. `vendor/dsh-better-sidebar-0.26.0.tgz`
-2. `dsh-ai-mind-0.1.6.tgz`
+2. `dsh-ai-mind-0.1.7.tgz`
 
 如果 profile 不叫 `web`，把 `web` 换成实际名称：
 
@@ -130,24 +135,24 @@ chmod +x install.sh
 已经启用 `dsh-better-sidebar` 时：
 
 ```bash
-curl -L -o dsh-ai-mind-0.1.6.tgz \
-  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.6/dsh-ai-mind-0.1.6.tgz
+curl -L -o dsh-ai-mind-0.1.7.tgz \
+  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.7/dsh-ai-mind-0.1.7.tgz
 
-dsh plugin --profile web add ./dsh-ai-mind-0.1.6.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.7.tgz
 ```
 
 还没装 `dsh-better-sidebar`：
 
 ```bash
 dsh plugin --profile web add dsh-better-sidebar@0.26.0
-dsh plugin --profile web add ./dsh-ai-mind-0.1.6.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.7.tgz
 ```
 
 也可以从完整发布包的 `vendor/` 目录安装离线包：
 
 ```bash
-dsh plugin --profile web add ./dsh-ai-mind-0.1.6/vendor/dsh-better-sidebar-0.26.0.tgz
-dsh plugin --profile web add ./dsh-ai-mind-0.1.6/dsh-ai-mind-0.1.6.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.7/vendor/dsh-better-sidebar-0.26.0.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.7/dsh-ai-mind-0.1.7.tgz
 ```
 
 ### 方式三：从源码安装（开发）
@@ -205,7 +210,7 @@ dsh --profile web --dump-config
 ## 打包分发
 
 ```bash
-npm pack                 # 生成 dsh-ai-mind-0.1.6.tgz，prepack 会自动重建 lib/client.js
+npm pack                 # 生成 dsh-ai-mind-0.1.7.tgz，prepack 会自动重建 lib/client.js
 ```
 
 发布包（zip）还包含 `dsh-better-sidebar` 安装包、`install.sh`、文章和截图。包内只含 `lib/`、`cordis.patch.yml`、`README.md`、`LICENSE` 和 `package.json`；`src/`、测试不进入 npm 分发包。

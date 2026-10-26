@@ -1464,6 +1464,45 @@
   gap: 6px;
 }
 
+.aim-wallet {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+}
+
+.aim-topup {
+  display: inline-flex;
+  align-items: center;
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid color-mix(in srgb, var(--acc) 45%, transparent);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--acc) 14%, transparent);
+  color: var(--acc);
+  font-size: 9px;
+  font-weight: 650;
+  text-decoration: none;
+  white-space: nowrap;
+  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.aim-topup:hover {
+  border-color: color-mix(in srgb, var(--acc) 65%, transparent);
+  background: color-mix(in srgb, var(--acc) 24%, transparent);
+  color: var(--text);
+}
+
+.aim-topup:focus-visible {
+  outline: 2px solid color-mix(in srgb, var(--acc) 55%, transparent);
+  outline-offset: 1px;
+}
+
+.aim-wallet-sep {
+  color: var(--dim);
+  font-size: 9px;
+  user-select: none;
+}
+
 .aim-balance {
   display: inline-flex;
   align-items: center;
