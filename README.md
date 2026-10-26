@@ -1,6 +1,6 @@
 # dsh-ai-mind · AI 心流
 
-作者：**cyberzero** · MIT License
+作者：**CyberZero** · MIT License
 
 DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务进度、思路导图、任务导图**折叠到一页。
 
@@ -29,6 +29,11 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 数据来自 `ctx.sessions` 的会话事件窗（durable event + `assistant/live-chunk`），不调用模型、不在服务端落任何数据。余额是唯一例外：插件服务端用本机 `DEEPSEEK_API_KEY` 查询官方余额接口，缓存 60 秒；页面每分钟自动刷新，切回页面时立即刷新。仅把币种和金额返回浏览器，密钥不下发。
 
 ## 更新日志
+
+### 0.1.6
+
+- **作者与授权**：右侧栏面板底部中间常驻小字 `CyberZero · MIT License`；窄面板或矮窗口只隐藏两侧辅助信息，署名保持可见。
+- **版权声明**：README 新增「版权与许可」章节，作者、`LICENSE` 与 `package.json` 统一为 CyberZero，并注明再分发时保留声明。
 
 ### 0.1.5
 
@@ -69,17 +74,17 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 
 ## 下载
 
-当前版本：`v0.1.5`
+当前版本：`v0.1.6`
 
 | 文件 | 用途 | 大小 |
 | --- | --- | --- |
-| [完整发布包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.5/dsh-ai-mind-0.1.5-fnos-release.zip) | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 7.4 MB |
-| [纯插件包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.5/dsh-ai-mind-0.1.5.tgz) | 已装好 `dsh-better-sidebar` 时使用 | 约 31 KB |
+| [完整发布包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.6/dsh-ai-mind-0.1.6-fnos-release.zip) | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 7.4 MB |
+| [纯插件包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.6/dsh-ai-mind-0.1.6.tgz) | 已装好 `dsh-better-sidebar` 时使用 | 约 31 KB |
 
 发布页：
 
-- GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.5
-- Gitea（局域网）：http://192.168.3.200:3000/cyberzero/dsh-ai-mind/releases/tag/v0.1.5
+- GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.6
+- Gitea（局域网）：http://192.168.3.200:3000/cyberzero/dsh-ai-mind/releases/tag/v0.1.6
 
 校验值随发布提供，见发布页的 `SHA256SUMS` 附件。
 
@@ -100,11 +105,11 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 下载并解压：
 
 ```bash
-curl -L -o dsh-ai-mind-0.1.5-fnos-release.zip \
-  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.5/dsh-ai-mind-0.1.5-fnos-release.zip
+curl -L -o dsh-ai-mind-0.1.6-fnos-release.zip \
+  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.6/dsh-ai-mind-0.1.6-fnos-release.zip
 
-unzip dsh-ai-mind-0.1.5-fnos-release.zip
-cd dsh-ai-mind-0.1.5
+unzip dsh-ai-mind-0.1.6-fnos-release.zip
+cd dsh-ai-mind-0.1.6
 chmod +x install.sh
 ./install.sh web
 ```
@@ -112,7 +117,7 @@ chmod +x install.sh
 `install.sh` 会依次安装：
 
 1. `vendor/dsh-better-sidebar-0.26.0.tgz`
-2. `dsh-ai-mind-0.1.5.tgz`
+2. `dsh-ai-mind-0.1.6.tgz`
 
 如果 profile 不叫 `web`，把 `web` 换成实际名称：
 
@@ -125,24 +130,24 @@ chmod +x install.sh
 已经启用 `dsh-better-sidebar` 时：
 
 ```bash
-curl -L -o dsh-ai-mind-0.1.5.tgz \
-  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.5/dsh-ai-mind-0.1.5.tgz
+curl -L -o dsh-ai-mind-0.1.6.tgz \
+  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.6/dsh-ai-mind-0.1.6.tgz
 
-dsh plugin --profile web add ./dsh-ai-mind-0.1.5.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.6.tgz
 ```
 
 还没装 `dsh-better-sidebar`：
 
 ```bash
 dsh plugin --profile web add dsh-better-sidebar@0.26.0
-dsh plugin --profile web add ./dsh-ai-mind-0.1.5.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.6.tgz
 ```
 
 也可以从完整发布包的 `vendor/` 目录安装离线包：
 
 ```bash
-dsh plugin --profile web add ./dsh-ai-mind-0.1.5/vendor/dsh-better-sidebar-0.26.0.tgz
-dsh plugin --profile web add ./dsh-ai-mind-0.1.5/dsh-ai-mind-0.1.5.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.6/vendor/dsh-better-sidebar-0.26.0.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.6/dsh-ai-mind-0.1.6.tgz
 ```
 
 ### 方式三：从源码安装（开发）
@@ -188,10 +193,19 @@ dsh --profile web --dump-config
 
 面板订阅的是当前会话的 `ctx.sessions` 事件窗；切换会话后会重新订阅。若仍不更新，先确认 DSH 版本与插件版本匹配。
 
+## 版权与许可
+
+本项目由 **CyberZero** 开发，以 **MIT License** 开源授权发布。
+
+- Copyright (c) 2026 CyberZero
+- 完整许可文本见 [LICENSE](LICENSE)
+- 插件面板底部中间常驻小字「CyberZero · MIT License」，用于保留作者署名与开源授权声明
+- 复制、修改、分发或再发布时，请保留本声明以及 [LICENSE](LICENSE) 中的版权与许可声明
+
 ## 打包分发
 
 ```bash
-npm pack                 # 生成 dsh-ai-mind-0.1.5.tgz，prepack 会自动重建 lib/client.js
+npm pack                 # 生成 dsh-ai-mind-0.1.6.tgz，prepack 会自动重建 lib/client.js
 ```
 
 发布包（zip）还包含 `dsh-better-sidebar` 安装包、`install.sh`、文章和截图。包内只含 `lib/`、`cordis.patch.yml`、`README.md`、`LICENSE` 和 `package.json`；`src/`、测试不进入 npm 分发包。

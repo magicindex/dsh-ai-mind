@@ -1,6 +1,6 @@
 {
   "name": "dsh-ai-mind",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "description": "AI 心流：右侧实时显示 AI 正在做什么、当前思路、任务进度、思路导图与任务导图",
   "type": "module",
   "main": "./lib/index.js",
@@ -55,5 +55,5 @@
       "optional": true
     }
   },
-  "author": "cyberzero"
+  "author": "CyberZero"
 }

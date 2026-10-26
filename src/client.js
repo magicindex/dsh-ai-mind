@@ -563,6 +563,7 @@ function AiMindView(props) {
   const { mode: theme, toggle: toggleTheme } = useAimTheme()
   const [showProcess, setShowProcess] = useState(false)
   const processRef = useRef(null)
+  const thoughtRef = useRef(null)
   const stickRef = useRef(true)
   const thoughtHistory = Array.isArray(mind.thoughtHistory) ? mind.thoughtHistory : []
   const canShowProcess = thoughtHistory.length > 1
@@ -587,6 +588,12 @@ function AiMindView(props) {
     if (!showProcess || !el) return
     if (stickRef.current) el.scrollTop = el.scrollHeight
   }, [showProcess, thoughtHistory.length, mind.thought])
+
+  useEffect(() => {
+    if (!visible) return
+    const el = thoughtRef.current
+    if (el) el.scrollTop = el.scrollHeight
+  }, [visible, sessionId, mind.thought, mind.thoughtLive, showProcess])
 
   if (!ready) return h(Skeleton)
 
@@ -784,7 +791,7 @@ function AiMindView(props) {
         : hasMind && mind.thought
           ? h(
               'div',
-              { className: 'aim-thought' },
+              { className: 'aim-thought', ref: thoughtRef },
               h('p', null, mind.thought, mind.thoughtLive ? h('span', { className: 'aim-caret' }) : null),
             )
           : h(
@@ -833,7 +840,12 @@ function AiMindView(props) {
     h(
       'footer',
       { className: 'aim-foot' },
-      h('span', null, '会话事件流 · 实时折叠'),
+      h('span', { className: 'aim-foot-status' }, '会话事件流 · 实时折叠'),
+      h(
+        'span',
+        { className: 'aim-credit', title: '作者 CyberZero · MIT License 开源授权' },
+        'CyberZero · MIT License',
+      ),
       h(
         'span',
         { className: 'aim-foot-time' },

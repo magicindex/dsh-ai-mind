@@ -1064,10 +1064,10 @@
 }
 
 .aim-foot {
-  display: flex;
+  display: grid;
   flex: 0 0 auto;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
-  justify-content: space-between;
   gap: 8px;
   margin-top: auto;
   padding-top: 6px;
@@ -1077,7 +1077,23 @@
   letter-spacing: 0.03em;
 }
 
+.aim-foot-status {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aim-credit {
+  justify-self: center;
+  color: color-mix(in srgb, var(--dim) 82%, var(--text));
+  font-size: 8.5px;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  cursor: help;
+}
+
 .aim-foot-time {
+  justify-self: end;
   font-variant-numeric: tabular-nums;
 }
 
@@ -1412,15 +1428,19 @@
     display: none;
   }
 
-  .aim-foot {
-    display: none;
+  .aim-foot-status {
+    visibility: hidden;
   }
 }
 
 @media (max-height: 760px) {
-  .aim-chips,
-  .aim-foot {
+  .aim-chips {
     display: none;
+  }
+
+  .aim-foot-status,
+  .aim-foot-time {
+    visibility: hidden;
   }
 
   .aim-map {
