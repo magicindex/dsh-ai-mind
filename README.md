@@ -98,11 +98,11 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 发布页：
 
 - GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.9
-- Gitea（局域网）：http://192.168.3.200:3000/cyberzero/dsh-ai-mind/releases/tag/v0.1.9
+- Gitea：https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/tag/v0.1.9
 
 校验值随发布提供，见发布页的 `SHA256SUMS` 附件。
 
-> GitHub 适合公网分享；Gitea 地址只在内网/局域网可访问。
+> GitHub 适合公网分享；Gitea 为自建实例，地址为 https://gitea.topzero.cn:10241。
 
 ## 安装
 
