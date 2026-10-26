@@ -1474,21 +1474,21 @@
   display: inline-flex;
   align-items: center;
   height: 26px;
-  padding: 0 9px;
-  border: 1px solid color-mix(in srgb, var(--acc) 45%, transparent);
+  padding: 0 7px;
+  border: 1px solid var(--line);
   border-radius: 8px;
-  background: color-mix(in srgb, var(--acc) 14%, transparent);
-  color: var(--acc);
+  background: var(--panel);
+  color: var(--muted);
   font-size: 9px;
-  font-weight: 650;
+  font-weight: 600;
   text-decoration: none;
   white-space: nowrap;
   transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
 }
 
 .aim-topup:hover {
-  border-color: color-mix(in srgb, var(--acc) 65%, transparent);
-  background: color-mix(in srgb, var(--acc) 24%, transparent);
+  border-color: color-mix(in srgb, var(--acc) 38%, transparent);
+  background: color-mix(in srgb, var(--acc) 9%, transparent);
   color: var(--text);
 }
 
@@ -1791,7 +1791,8 @@
   border-color: rgba(15, 23, 42, 0.07);
   background: linear-gradient(100deg, rgba(15, 23, 42, 0.035) 20%, rgba(15, 23, 42, 0.075) 40%, rgba(15, 23, 42, 0.035) 60%);
 }
-.aim-root[data-aim-theme="light"] .aim-balance {
+.aim-root[data-aim-theme="light"] .aim-balance,
+.aim-root[data-aim-theme="light"] .aim-topup {
   background: rgba(255, 255, 255, 0.86);
   box-shadow: 0 2px 7px rgba(23, 37, 66, 0.05);
 }
