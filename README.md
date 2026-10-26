@@ -1,6 +1,6 @@
 # dsh-ai-mind · AI 心流
 
-作者：**CyberZero** · MIT License
+作者：**CyberZero** · MIT License · 当前版本：`v0.1.10`
 
 DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务进度、思路导图、任务导图**折叠到一页。
 
@@ -29,6 +29,14 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 数据来自 `ctx.sessions` 的会话事件窗（durable event + `assistant/live-chunk`），不调用模型、不在服务端落任何数据。余额是唯一例外：插件服务端用本机 `DEEPSEEK_API_KEY` 查询官方余额接口，缓存 60 秒；页面每分钟自动刷新，切回页面时立即刷新。仅把币种和金额返回浏览器，密钥不下发。
 
 ## 更新日志
+
+### 0.1.10
+
+- **一键安装**：新增根目录 `install.sh`，一条命令完成下载、SHA256 校验、解压和安装；默认走 Gitea，`AIM_MIRROR=github` 可切换 GitHub。
+- **安装脚本**：完整发布包内的 `install.sh` 会检测 `dsh-better-sidebar`，已安装时跳过，避免把较新版本降级到 0.26.0。
+- **README**：重写下载与安装章节，以当前版本的一键安装为默认方式，保留手动安装、纯插件包和源码安装。
+- **发布同步**：Gitea 补齐 0.1.6–0.1.10 的 Release 与安装包，两个平台的下载链接保持一致。
+- **无插件行为变更**：`lib/client.js` 与 0.1.9 一致，已装 0.1.9 的用户可按需升级。
 
 ### 0.1.9
 
@@ -88,83 +96,124 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 
 ## 下载
 
-当前版本：`v0.1.9`
+当前版本：`v0.1.10`
 
-| 文件 | 用途 | 大小 |
-| --- | --- | --- |
-| [完整发布包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.9/dsh-ai-mind-0.1.9-fnos-release.zip) | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 7.4 MB |
-| [纯插件包](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.9/dsh-ai-mind-0.1.9.tgz) | 已装好 `dsh-better-sidebar` 时使用 | 约 31 KB |
+| 文件 | 用途 | 大小 | GitHub | Gitea |
+| --- | --- | --- | --- | --- |
+| 完整发布包 | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 7.4 MB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-0.1.10-fnos-release.zip) | [下载](https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-0.1.10-fnos-release.zip) |
+| 纯插件包 | 已装好 `dsh-better-sidebar` 时使用 | 约 32 KB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-0.1.10.tgz) | [下载](https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-0.1.10.tgz) |
 
 发布页：
 
-- GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.9
-- Gitea：https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/tag/v0.1.9
+- GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.10
+- Gitea：https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/tag/v0.1.10
 
 校验值随发布提供，见发布页的 `SHA256SUMS` 附件。
 
-> GitHub 适合公网分享；Gitea 为自建实例，地址为 https://gitea.topzero.cn:10241。
+> GitHub 适合公网分享；Gitea 为自建实例，国内访问更稳定。GitHub 下载受阻时优先使用 Gitea。
 
 ## 安装
 
 ### 前置条件
 
 - DSH `0.2.0-rc.2` 左右版本。
-- 已安装并启用 `dsh-better-sidebar >= 0.26.0`。插件通过它的公开 `registerTab` API 注册右侧页签。
+- 已安装并启用 `dsh-better-sidebar >= 0.26.0`。插件通过它的公开 `registerTab` API 注册右侧页签；一键安装会自动补齐，已安装则跳过，不会降级。
 - 使用**运行 DSH 的同一系统用户**执行安装命令，避免插件文件归属错误。
 - 首次安装 `dsh-better-sidebar` 的传递依赖需要联网。
 - 余额显示需要 DSH 进程环境里存在 `DEEPSEEK_API_KEY`；未配置时余额显示 `—`，其他功能不受影响。
 
-### 方式一：完整发布包（推荐）
+### 方式一：一键安装（推荐）
+
+在运行 DSH 的机器上执行，默认安装到 `web` profile：
+
+```bash
+curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/install.sh | bash -s -- web
+```
+
+GitHub 源（内容相同，二选一）：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/magicindex/dsh-ai-mind/main/install.sh | bash -s -- web
+```
+
+脚本会依次完成：
+
+1. 下载 `v0.1.10` 完整发布包；
+2. 下载 `SHA256SUMS` 并校验安装包；
+3. 解压到临时目录；
+4. 安装 `dsh-better-sidebar`（已安装则跳过）；
+5. 安装 `dsh-ai-mind`，随后清理临时文件。
+
+profile 不叫 `web` 时，把最后的 `web` 换成实际名称：
+
+```bash
+curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/install.sh | bash -s -- <profile>
+```
+
+需要换源或指定版本时：
+
+```bash
+# 改走 GitHub 源
+curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/install.sh | AIM_MIRROR=github bash -s -- web
+
+# 指定版本（默认为 0.1.10）
+curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/install.sh | AIM_VERSION=0.1.10 bash -s -- web
+```
+
+安装完成后重启 DSH，见[重启并确认](#重启并确认)。
+
+### 方式二：完整发布包手动安装
 
 下载并解压：
 
 ```bash
-curl -L -o dsh-ai-mind-0.1.9-fnos-release.zip \
-  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.9/dsh-ai-mind-0.1.9-fnos-release.zip
+curl -fL -o dsh-ai-mind-0.1.10-fnos-release.zip \
+  https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-0.1.10-fnos-release.zip
 
-unzip dsh-ai-mind-0.1.9-fnos-release.zip
-cd dsh-ai-mind-0.1.9
+unzip dsh-ai-mind-0.1.10-fnos-release.zip
+cd dsh-ai-mind-0.1.10
 chmod +x install.sh
 ./install.sh web
 ```
 
-`install.sh` 会依次安装：
+GitHub 源把第一行 URL 换成：
 
-1. `vendor/dsh-better-sidebar-0.26.0.tgz`
-2. `dsh-ai-mind-0.1.9.tgz`
+```text
+https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-0.1.10-fnos-release.zip
+```
 
-如果 profile 不叫 `web`，把 `web` 换成实际名称：
+`install.sh` 会依次安装 `vendor/dsh-better-sidebar-0.26.0.tgz`（已安装则跳过）和 `dsh-ai-mind-0.1.10.tgz`。profile 不叫 `web` 时把 `web` 换成实际名称：
 
 ```bash
 ./install.sh <profile>
 ```
 
-### 方式二：只装插件包
+### 方式三：只装插件包
 
 已经启用 `dsh-better-sidebar` 时：
 
 ```bash
-curl -L -o dsh-ai-mind-0.1.9.tgz \
-  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.9/dsh-ai-mind-0.1.9.tgz
+curl -fL -o dsh-ai-mind-0.1.10.tgz \
+  https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-0.1.10.tgz
 
-dsh plugin --profile web add ./dsh-ai-mind-0.1.9.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.10.tgz
 ```
 
 还没装 `dsh-better-sidebar`：
 
 ```bash
 dsh plugin --profile web add dsh-better-sidebar@0.26.0
-dsh plugin --profile web add ./dsh-ai-mind-0.1.9.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.10.tgz
 ```
 
 也可以从完整发布包的 `vendor/` 目录安装离线包：
 
 ```bash
-dsh plugin --profile web add ./dsh-ai-mind-0.1.9/vendor/dsh-better-sidebar-0.26.0.tgz
-dsh plugin --profile web add ./dsh-ai-mind-0.1.9/dsh-ai-mind-0.1.9.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.10/vendor/dsh-better-sidebar-0.26.0.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.10/dsh-ai-mind-0.1.10.tgz
 ```
 
-### 方式三：从源码安装（开发）
+### 方式四：从源码安装（开发）
 
 ```bash
 git clone https://github.com/magicindex/dsh-ai-mind.git
@@ -235,7 +284,7 @@ styles: claimStyles(ownerId, untaggedBefore)
 ## 打包分发
 
 ```bash
-npm pack                 # 生成 dsh-ai-mind-0.1.9.tgz，prepack 会自动重建 lib/client.js
+npm pack                 # 生成 dsh-ai-mind-0.1.10.tgz，prepack 会自动重建 lib/client.js
 ```
 
 发布包（zip）还包含 `dsh-better-sidebar` 安装包、`install.sh`、文章和截图。包内只含 `lib/`、`cordis.patch.yml`、`README.md`、`LICENSE` 和 `package.json`；`src/`、测试不进入 npm 分发包。
