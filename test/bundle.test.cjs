@@ -88,6 +88,12 @@ test('client bundle applies cleanly and registers the right-sidebar tab', () => 
   delete global.window
 })
 
+test('bundle carries the package version for the footer', () => {
+  const pkg = JSON.parse(fs.readFileSync(path.join(__dirname, '..', 'package.json'), 'utf8'))
+  const bundle = fs.readFileSync(path.join(__dirname, '..', 'lib', 'client.js'), 'utf8')
+  assert.ok(bundle.includes(`const AI_MIND_VERSION = ${JSON.stringify(pkg.version)}`))
+})
+
 test('blank sessions never auto-open the sidebar tab', async () => {
   global.document = {
     getElementById: () => null,

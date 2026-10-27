@@ -273,3 +273,80 @@ test('emptyMind stays a valid idle snapshot', () => {
   assert.deepEqual(mind.tasks, [])
   assert.deepEqual(mind.thoughtHistory, [])
 })
+
+test('interleaves thoughts and code creation in one timeline', () => {
+  const entries = [
+    user('实现这个功能'),
+    ev('assistant/message', {
+      turn: 1, step: 2,
+      message: { role: 'assistant', content: [{ type: 'reasoning', text: '先写一个入口文件。' }] },
+    }, 2000),
+    ev('tool/call', {
+      turn: 1, step: 2, callId: 'w1', name: 'write',
+      arguments: JSON.stringify({
+        file_path: '/workspace/src/app.js',
+        content: 'const a = 1\nconst b = 2\n',
+      }),
+    }, 3000),
+    ev('tool/result', {
+      turn: 1, step: 2,
+      message: { role: 'tool', toolCallId: 'w1', content: [{ type: 'text', text: 'ok' }] },
+    }, 3200),
+    ev('assistant/message', {
+      turn: 1, step: 3,
+      message: { role: 'assistant', content: [{ type: 'reasoning', text: '再补一个分支。' }] },
+    }, 4000),
+    ev('tool/call', {
+      turn: 1, step: 3, callId: 'e1', name: 'edit',
+      arguments: JSON.stringify({
+        file_path: '/workspace/src/app.js',
+        old_string: 'const b = 2',
+        new_string: 'const b = 3',
+      }),
+    }, 5000),
+  ]
+  const mind = deriveMind(entries, { now: 6000, running: true })
+  assert.deepEqual(mind.timeline.map(item => item.kind), ['thought', 'code', 'thought', 'code'])
+  const write = mind.timeline[1]
+  assert.equal(write.tool, 'write')
+  assert.equal(write.action, '创建')
+  assert.equal(write.file, 'app.js')
+  assert.equal(write.language, 'javascript')
+  assert.equal(write.lineCount, 2)
+  assert.match(write.content, /const a = 1/)
+  const edit = mind.timeline[3]
+  assert.equal(edit.action, '修改')
+  assert.equal(edit.content, 'const b = 3')
+  assert.equal(edit.previousLineCount, 1)
+  assert.equal(mind.codeCount, 2)
+})
+
+test('code timeline ignores non-code tools and keeps running status', () => {
+  const entries = [
+    user('看看目录'),
+    ev('tool/call', {
+      turn: 1, step: 2, callId: 'b1', name: 'bash',
+      arguments: JSON.stringify({ command: 'ls', description: '列出目录' }),
+    }, 2000),
+  ]
+  const mind = deriveMind(entries, { now: 3000, running: true })
+  assert.equal(mind.codeCount, 0)
+  assert.deepEqual(mind.timeline, [])
+})
+
+test('a running write is already visible as live code creation', () => {
+  const entries = [
+    user('写文件'),
+    ev('tool/call', {
+      turn: 1, step: 2, callId: 'w2', name: 'write',
+      arguments: JSON.stringify({ file_path: 'README.md', content: '# 标题\n' }),
+    }, 2000),
+  ]
+  const mind = deriveMind(entries, { now: 2500, running: true })
+  assert.equal(mind.timeline.length, 1)
+  const item = mind.timeline[0]
+  assert.equal(item.kind, 'code')
+  assert.equal(item.live, true)
+  assert.equal(item.status, 'running')
+  assert.equal(item.language, 'markdown')
+})

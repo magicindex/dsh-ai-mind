@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # dsh-ai-mind 一键安装脚本
 # 用法：curl -fsSL <install.sh 地址> | bash -s -- [profile]
-# 可选环境变量：AIM_VERSION（默认 0.1.10）、AIM_MIRROR（gitea|github，默认 gitea）
+# 可选环境变量：AIM_VERSION（默认 0.1.11）、AIM_MIRROR（gitea|github，默认 gitea）
 set -euo pipefail
 
-VERSION="${AIM_VERSION:-0.1.10}"
+VERSION="${AIM_VERSION:-0.1.11}"
 PROFILE="${1:-web}"
 MIRROR="${AIM_MIRROR:-gitea}"
 ASSET="dsh-ai-mind-${VERSION}-fnos-release.zip"

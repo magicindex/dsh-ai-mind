@@ -6,6 +6,7 @@ const h = React.createElement
 
 const TAB_ID = 'dsh-ai-mind:mind'
 const STYLE_ID = 'dsh-ai-mind-style'
+const PLUGIN_VERSION = typeof AI_MIND_VERSION === 'string' ? AI_MIND_VERSION : 'dev'
 const CLOSED_SESSIONS = new Set()
 const AUTO_OPENED = new Set()
 
@@ -556,6 +557,91 @@ function Skeleton() {
   )
 }
 
+function CodeArtifact({ item }) {
+  const lines = String(item.content || '').replace(/\n$/, '').split('\n')
+  const visible = lines.slice(0, 80)
+  const hidden = lines.length - visible.length
+  return h(
+    'div',
+    { className: cx('aim-code', item.live && 'is-live') },
+    h(
+      'div',
+      { className: 'aim-code-head' },
+      h('span', { className: 'aim-code-dots', 'aria-hidden': 'true' }, h('i'), h('i'), h('i')),
+      h('span', { className: 'aim-code-file', title: item.path || item.file }, item.file || '未命名文件'),
+      item.previousLineCount
+        ? h('span', { className: 'aim-code-diff' }, `−${item.previousLineCount} +${item.lineCount}`)
+        : h('span', { className: 'aim-code-lines' }, `+${item.lineCount}`),
+      h('span', { className: 'aim-code-lang' }, item.language || 'text'),
+    ),
+    item.path && item.path !== item.file ? h('span', { className: 'aim-code-path', title: item.path }, item.path) : null,
+    h('pre', { className: 'aim-code-body' }, h('code', null, visible.join('\n') || '（空内容）')),
+    hidden > 0 || item.truncated
+      ? h('div', { className: 'aim-code-more' }, item.truncated ? '内容过长，仅展示部分预览' : `还有 ${hidden} 行`)
+      : null,
+  )
+}
+
+function FlowFeed({ items, thoughtLive, innerRef, onScroll }) {
+  const rows = []
+  items.forEach((item, index) => {
+    const clock = fmtClock(item.time)
+    const previousClock = index > 0 ? fmtClock(items[index - 1].time) : ''
+    const isCode = item.kind === 'code'
+    const latestThought = !isCode && thoughtLive && index === items.length - 1
+    const isLive = isCode ? Boolean(item.live) : Boolean(item.live && latestThought)
+    if (clock && clock !== previousClock) {
+      rows.push(
+        h(
+          'div',
+          { key: `time-${item.id || index}`, className: 'aim-flow-time', 'aria-hidden': 'true' },
+          h('i'),
+          h('span', null, clock),
+          h('i'),
+        ),
+      )
+    }
+    rows.push(
+      h(
+        'article',
+        {
+          key: item.id || `${item.kind}-${index}`,
+          className: cx('aim-flow-item', isCode ? 'is-code' : 'is-thought', isLive && 'is-live'),
+          role: 'listitem',
+        },
+        h(
+          'div',
+          { className: 'aim-flow-meta' },
+          h(
+            'span',
+            { className: cx('aim-flow-tag', isCode ? 'is-code' : 'is-thought') },
+            h(Icon, { name: isCode ? 'code' : 'think', size: 10 }),
+            isCode ? (item.live ? '代码创作中' : '代码创作') : '思路',
+          ),
+          isCode
+            ? h('span', { className: 'aim-flow-file', title: item.path || item.file }, `${item.action} ${item.file}`)
+            : h('span', { className: 'aim-flow-step' }, `步骤 ${item.step || '—'}`),
+          isLive ? h('em', null, 'LIVE') : null,
+        ),
+        isCode
+          ? h(CodeArtifact, { item })
+          : h('p', null, item.text, latestThought ? h('span', { className: 'aim-caret' }) : null),
+      ),
+    )
+  })
+  return h(
+    'div',
+    {
+      className: 'aim-thought aim-flow',
+      ref: innerRef,
+      role: 'list',
+      'aria-label': '当前思路与代码创作过程',
+      onScroll,
+    },
+    rows,
+  )
+}
+
 function AiMindView(props) {
   const { ctx, scope, visible } = props
   const sessionId = scope?.sessionId
@@ -565,7 +651,10 @@ function AiMindView(props) {
   const processRef = useRef(null)
   const thoughtRef = useRef(null)
   const stickRef = useRef(true)
+  const flowStickRef = useRef(true)
   const thoughtHistory = Array.isArray(mind.thoughtHistory) ? mind.thoughtHistory : []
+  const timeline = Array.isArray(mind.timeline) ? mind.timeline : []
+  const codeCount = mind.codeCount || timeline.filter((item) => item.kind === 'code').length
   const canShowProcess = thoughtHistory.length > 1
   const balance = useDeepSeekBalance()
   const wallet = balance.status === 'ready' ? walletDisplay(balance.data) : null
@@ -581,6 +670,7 @@ function AiMindView(props) {
   useEffect(() => {
     setShowProcess(false)
     stickRef.current = true
+    flowStickRef.current = true
   }, [sessionId])
 
   useEffect(() => {
@@ -590,10 +680,18 @@ function AiMindView(props) {
   }, [showProcess, thoughtHistory.length, mind.thought])
 
   useEffect(() => {
-    if (!visible) return
+    if (!visible || showProcess) return
     const el = thoughtRef.current
-    if (el) el.scrollTop = el.scrollHeight
-  }, [visible, sessionId, mind.thought, mind.thoughtLive, showProcess])
+    if (el && flowStickRef.current) el.scrollTop = el.scrollHeight
+  }, [
+    visible,
+    sessionId,
+    timeline.length,
+    timeline[timeline.length - 1]?.time,
+    timeline[timeline.length - 1]?.text,
+    mind.thoughtLive,
+    showProcess,
+  ])
 
   if (!ready) return h(Skeleton)
 
@@ -607,7 +705,7 @@ function AiMindView(props) {
         : mind.detail
       : mind.detail
   const pillText = active ? 'LIVE' : mind.phase === 'done' ? 'DONE' : mind.phase === 'error' ? 'ISSUE' : 'IDLE'
-  const hasMind = Boolean(mind.prompt || mind.thought || mind.answer || mind.tools.length)
+  const hasMind = Boolean(mind.prompt || mind.thought || mind.answer || mind.tools.length || timeline.length)
   const progressWidth = mind.progress > 0 ? mind.progress : active && mind.total > 0 ? 4 : 0
 
   return h(
@@ -749,7 +847,8 @@ function AiMindView(props) {
       { className: 'aim-card aim-thought-card aim-sec', style: { animationDelay: '100ms' } },
       h(SectionHead, {
         icon: 'think',
-        title: showProcess && canShowProcess ? '推理过程' : '当前思路',
+        title: showProcess && canShowProcess ? '推理过程' : codeCount ? '思路与代码创作' : '当前思路',
+        hint: !showProcess && codeCount ? `代码 ${codeCount}` : null,
         live: mind.thoughtLive,
         right: canShowProcess
           ? h(
@@ -759,6 +858,7 @@ function AiMindView(props) {
                 className: cx('aim-process-toggle', showProcess && 'is-on'),
                 onClick: () => {
                   stickRef.current = true
+                  flowStickRef.current = true
                   setShowProcess((value) => !value)
                 },
                 title: showProcess ? '返回当前思路' : '查看本轮完整推理过程',
@@ -793,23 +893,37 @@ function AiMindView(props) {
                 h(
                   'div',
                   { className: 'aim-process-meta' },
-                  h('span', { className: 'aim-process-step' }, item.live ? '正在推理' : `步骤 ${item.step || '—'}`),
-                  item.live ? h('em', null, 'LIVE') : null,
+                  h(
+                    'span',
+                    { className: 'aim-flow-tag is-thought is-small' },
+                    h(Icon, { name: 'think', size: 9 }),
+                    '思路',
+                  ),
+                  h(
+                    'span',
+                    { className: 'aim-process-step' },
+                    item.live && mind.thoughtLive ? '正在推理' : `步骤 ${item.step || '—'}`,
+                  ),
+                  item.live && mind.thoughtLive ? h('em', null, 'LIVE') : null,
                   h('time', null, fmtClock(item.time)),
                 ),
                 h('p', null, item.text),
               ),
             ),
           )
-        : hasMind && mind.thought
-          ? h(
-              'div',
-              { className: 'aim-thought', ref: thoughtRef },
-              h('p', null, mind.thought, mind.thoughtLive ? h('span', { className: 'aim-caret' }) : null),
-            )
+        : timeline.length
+          ? h(FlowFeed, {
+              items: timeline,
+              thoughtLive: mind.thoughtLive,
+              innerRef: thoughtRef,
+              onScroll: () => {
+                const el = thoughtRef.current
+                if (el) flowStickRef.current = el.scrollHeight - el.scrollTop - el.clientHeight < 36
+              },
+            })
           : h(
               'div',
-              { className: 'aim-thought is-empty' },
+              { className: 'aim-thought is-empty', ref: thoughtRef },
               h('p', null, mind.phase === 'acting' ? '执行阶段，思路会在模型下一次推理时出现。' : '模型尚未产生可见推理。'),
             ),
       !showProcess && mind.thoughtBits.length > 1
@@ -856,8 +970,9 @@ function AiMindView(props) {
       h('span', { className: 'aim-foot-status' }, '会话事件流 · 实时折叠'),
       h(
         'span',
-        { className: 'aim-credit', title: '作者 CyberZero · MIT License 开源授权' },
-        'CyberZero · MIT License',
+        { className: 'aim-credit', title: `dsh-ai-mind v${PLUGIN_VERSION} · 作者 CyberZero · MIT License 开源授权` },
+        h('b', { className: 'aim-version' }, `v${PLUGIN_VERSION}`),
+        ' · CyberZero · MIT License',
       ),
       h(
         'span',

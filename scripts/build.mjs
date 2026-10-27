@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url'
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..')
 
+const pkg = JSON.parse(await readFile(join(root, 'package.json'), 'utf8'))
 const model = (await readFile(join(root, 'src/model.cjs'), 'utf8'))
   // The pure model is concatenated into the bundle; drop its CommonJS tail.
   .replace(/\nmodule\.exports\s*=\s*\{[\s\S]*$/, '\n')
@@ -15,6 +16,7 @@ var module = { exports: {} }; var exports = module.exports;
 
 ${model}
 
+const AI_MIND_VERSION = ${JSON.stringify(pkg.version)};
 const AI_MIND_CSS = ${JSON.stringify(css)};
 
 ${ui}

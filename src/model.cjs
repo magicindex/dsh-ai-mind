@@ -35,6 +35,45 @@ const TOOL_META = {
   send_message: { label: '发送消息', icon: 'chat' },
 }
 
+const CODE_TOOLS = new Set(['write', 'edit', 'code'])
+const CODE_ACTIONS = { write: '创建', edit: '修改', code: '代码操作' }
+const CODE_PREVIEW_LIMIT = 6000
+const LANGUAGE_BY_EXT = {
+  js: 'javascript',
+  cjs: 'javascript',
+  mjs: 'javascript',
+  jsx: 'jsx',
+  ts: 'typescript',
+  tsx: 'tsx',
+  css: 'css',
+  html: 'html',
+  htm: 'html',
+  json: 'json',
+  md: 'markdown',
+  py: 'python',
+  go: 'go',
+  rs: 'rust',
+  sh: 'bash',
+  bash: 'bash',
+  zsh: 'bash',
+  yml: 'yaml',
+  yaml: 'yaml',
+  toml: 'toml',
+  sql: 'sql',
+  c: 'c',
+  h: 'c',
+  cpp: 'cpp',
+  hpp: 'cpp',
+  cs: 'csharp',
+  java: 'java',
+  kt: 'kotlin',
+  swift: 'swift',
+  rb: 'ruby',
+  php: 'php',
+  vue: 'vue',
+  svelte: 'svelte',
+}
+
 const PHASES = {
   idle: { label: '待命', tone: 'muted' },
   waiting: { label: '等待响应', tone: 'muted' },
@@ -161,6 +200,53 @@ function describeTool(name, args) {
     icon: meta.icon,
     target,
     detail: target ? `${meta.label} · ${target}` : meta.label,
+  }
+}
+
+function languageFromPath(path) {
+  const file = String(path || '').split(/[\\/]/).pop() || ''
+  const dot = file.lastIndexOf('.')
+  if (dot < 0) return ''
+  const ext = file.slice(dot + 1).toLowerCase()
+  return LANGUAGE_BY_EXT[ext] || ext
+}
+
+function countLines(text) {
+  const value = String(text || '').replace(/\n$/, '')
+  return value ? value.split('\n').length : 0
+}
+
+function codeOperation(tool) {
+  if (!isObject(tool)) return null
+  const name = String(tool.name || '').toLowerCase()
+  if (!CODE_TOOLS.has(name)) return null
+  const args = parseArgs(tool.args)
+  const path = String(args.file_path ?? args.path ?? args.filename ?? '')
+  const previousRaw = name === 'edit' ? contentText(args.old_string ?? '') : ''
+  const raw =
+    name === 'edit'
+      ? contentText(args.new_string ?? args.content ?? '')
+      : contentText(args.content ?? args.code ?? args.source ?? '')
+  const content = raw.length > CODE_PREVIEW_LIMIT ? raw.slice(0, CODE_PREVIEW_LIMIT) : raw
+  if (!path && !content) return null
+  const file = path ? String(path).split(/[\\/]/).pop() : '未命名文件'
+  return {
+    id: `code-${tool.id || tool.at || file}`,
+    kind: 'code',
+    label: '代码创作',
+    time: Number(tool.at) || 0,
+    step: Number(tool.step) || 0,
+    tool: name,
+    action: CODE_ACTIONS[name] || '代码操作',
+    path,
+    file,
+    language: languageFromPath(path),
+    content,
+    truncated: raw.length > content.length,
+    lineCount: countLines(raw),
+    previousLineCount: countLines(previousRaw),
+    status: tool.status || 'done',
+    live: tool.status === 'running',
   }
 }
 
@@ -433,6 +519,27 @@ function deriveMind(entries, options = {}) {
   }
   const thoughtHistory = reasoningHistory.filter((item) => item.text).slice(-20)
 
+  // One chronological feed for the thought card: reasoning snapshots and the
+  // file writes/edits the model performs, so "thinking" and "code creation"
+  // can be read together instead of the code disappearing into the tool trace.
+  const flowItems = thoughtHistory.map((item) => ({
+    id: `thought-${item.time || 0}-${item.step || 0}`,
+    kind: 'thought',
+    label: '思路',
+    turn: item.turn,
+    step: item.step || 0,
+    time: item.time || 0,
+    text: item.text,
+    live: Boolean(item.live),
+  }))
+  for (const tool of tools) {
+    const code = codeOperation(tool)
+    if (code) flowItems.push(code)
+  }
+  flowItems.sort((a, b) => (a.time || 0) - (b.time || 0) || (a.kind === 'thought' ? -1 : 1))
+  const timeline = flowItems.slice(-24)
+  const codeCount = flowItems.filter((item) => item.kind === 'code').length
+
   const assistant = assistantParts(lastAssistant?.data?.message)
   const reasoning = liveReasoning || assistant.reasoning
   const answer = liveText || assistant.text
@@ -586,6 +693,8 @@ function deriveMind(entries, options = {}) {
     thoughtBits,
     thoughtHistory,
     thoughtLive: Boolean(liveReasoning),
+    timeline,
+    codeCount,
     answer: collapse(answer, 700),
     tools,
     focusTool,
@@ -626,6 +735,8 @@ function emptyMind(overrides = {}) {
     thoughtBits: [],
     thoughtHistory: [],
     thoughtLive: false,
+    timeline: [],
+    codeCount: 0,
     answer: '',
     tools: [],
     focusTool: null,

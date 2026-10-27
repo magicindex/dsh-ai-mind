@@ -1,25 +1,25 @@
 # dsh-ai-mind · AI 心流
 
-作者：**CyberZero** · MIT License · 当前版本：`v0.1.10`
+作者：**CyberZero** · MIT License · 当前版本：`v0.1.11`
 
 DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务进度、思路导图、任务导图**折叠到一页。
 
 ## 预览
 
 <p align="center">
-  <img src="docs/preview-active-dark.png" width="32%" alt="运行中的深色面板">
-  <img src="docs/preview-done-light.png" width="32%" alt="完成后的亮色面板">
-  <img src="docs/preview-done-dark.png" width="32%" alt="完成后的深色面板">
+  <img src="docs/preview-active-dark.png" width="32%" alt="运行中的深色面板：思路与代码创作时间线">
+  <img src="docs/preview-done-light.png" width="32%" alt="亮色面板：思路与代码创作时间线">
+  <img src="docs/preview-done-dark.png" width="32%" alt="深色面板：思路与代码创作时间线">
 </p>
 
-左：执行中的深色面板；中、右：本轮完成后的亮色与深色面板。标题栏提供「充值」按钮并只读显示 DeepSeek 余额，指标区包含当前窗口总 token，任务导图会把正在执行的工具置顶为 `NOW`。
+左：运行中的深色面板；中、右：亮色与深色面板。思路与代码创作共用一条时间线，时间戳分割线区分段落，代码块显示文件名、增删行数与预览。标题栏提供「充值」按钮并只读显示 DeepSeek 余额，指标区包含当前窗口总 token，任务导图会把正在执行的工具置顶为 `NOW`。
 
 ## 显示什么
 
 - **实时阶段**：待命 / 等待响应 / 推理中 / 组织回答 / 执行操作 / 本轮完成 / 需要处理。
 - **当前动作**：正在调用的工具、目标文件或命令、轮次、步骤、耗时、生成 token，以及当前窗口输入/缓存/输出的总 token（悬停可看拆分）。
 - **本轮目标**：最后一条真实用户消息。
-- **当前思路**：模型可见的 reasoning 流；流式输出时实时追加并显示光标。标题栏的「推理过程 N」可回放本轮最近 20 段推理；向上翻阅时不会被新输出强制拉回底部。
+- **当前思路**：模型可见的 reasoning 流与 `write` / `edit` / `code` 代码创作共用一条时间线；每段以时间戳分割线切开，「思路」/「代码创作」标记区分类型，代码块显示文件名、增删行数与可滚动预览，流式输出时实时追加。标题栏的「推理过程 N」可回放本轮最近 20 段纯推理；向上翻阅时不会被新输出强制拉回底部。
 - **思路导图**：目标 → 思路 → 最近动作 → 输出，以放射状节点图呈现，当前动作高亮。
 - **任务导图**：优先读取 `todo/write` 的任务清单与完成度；清单超过 40 步未刷新时自动退回真实工具轨迹，并把进度标为「执行进度」，避免展示过期计划。当前正在执行的工具会以 `NOW · 进行中` 置顶显示，不依赖它是否出现在待办清单里。
 - **实时进度条**：完成数 / 总数，执行中带流光动画。
@@ -29,6 +29,13 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 数据来自 `ctx.sessions` 的会话事件窗（durable event + `assistant/live-chunk`），不调用模型、不在服务端落任何数据。余额是唯一例外：插件服务端用本机 `DEEPSEEK_API_KEY` 查询官方余额接口，缓存 60 秒；页面每分钟自动刷新，切回页面时立即刷新。仅把币种和金额返回浏览器，密钥不下发。
 
 ## 更新日志
+
+### 0.1.11
+
+- **思路与代码创作**：当前思路卡片改为共用时间线，`write` / `edit` / `code` 调用以「代码创作」条目插入，显示文件名、增删行数、语言与代码预览；每段用时间戳分割线切开，并保留「思路」标记。
+- **实时追加**：流式推理和运行中的代码操作会立即出现在时间线末尾，完成后自动转为静态条目；向上翻阅时不被强制拉回底部。
+- **响应式布局**：双列断点从 640px 下调到 480px；480–640px 使用紧凑双列，小于 480px 切单列，单列高度不足时面板可滚动。
+- **页脚版本**：面板底部显示当前插件版本，随构建自动注入。
 
 ### 0.1.10
 
@@ -79,7 +86,7 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 - 顶部状态 hero：阶段、当前动作、五项指标、执行进度；
 - 2×2 bento：左侧「本轮目标 + 当前思路」，右侧「思路导图 + 任务导图」；
 - 卡片内部各自滚动，长思路、多任务不会把整页撑开；
-- 用容器查询按**面板宽度**（不是浏览器视口）切换：小于 640px 时自动改为单列堆叠，仍然一屏展示全部区块。
+- 用容器查询按**面板宽度**（不是浏览器视口）切换：480–640px 使用紧凑双列，小于 480px 时改为单列堆叠；单列高度不足时面板可滚动，避免卡片被压扁。
 
 ## 主题
 
@@ -96,17 +103,17 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 
 ## 下载
 
-当前版本：`v0.1.10`
+当前版本：`v0.1.11`
 
 | 文件 | 用途 | 大小 | GitHub | Gitea |
 | --- | --- | --- | --- | --- |
-| 完整发布包 | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 7.4 MB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-0.1.10-fnos-release.zip) | [下载](https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-0.1.10-fnos-release.zip) |
-| 纯插件包 | 已装好 `dsh-better-sidebar` 时使用 | 约 32 KB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-0.1.10.tgz) | [下载](https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-0.1.10.tgz) |
+| 完整发布包 | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 5.5 MB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.11/dsh-ai-mind-0.1.11-fnos-release.zip) | [下载](https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.11/dsh-ai-mind-0.1.11-fnos-release.zip) |
+| 纯插件包 | 已装好 `dsh-better-sidebar` 时使用 | 约 37 KB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.11/dsh-ai-mind-0.1.11.tgz) | [下载](https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.11/dsh-ai-mind-0.1.11.tgz) |
 
 发布页：
 
-- GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.10
-- Gitea：https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/tag/v0.1.10
+- GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.11
+- Gitea：https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/tag/v0.1.11
 
 校验值随发布提供，见发布页的 `SHA256SUMS` 附件。
 
@@ -138,7 +145,7 @@ curl -fsSL https://raw.githubusercontent.com/magicindex/dsh-ai-mind/main/install
 
 脚本会依次完成：
 
-1. 下载 `v0.1.10` 完整发布包；
+1. 下载 `v0.1.11` 完整发布包；
 2. 下载 `SHA256SUMS` 并校验安装包；
 3. 解压到临时目录；
 4. 安装 `dsh-better-sidebar`（已安装则跳过）；
@@ -156,8 +163,8 @@ curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/
 # 改走 GitHub 源
 curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/install.sh | AIM_MIRROR=github bash -s -- web
 
-# 指定版本（默认为 0.1.10）
-curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/install.sh | AIM_VERSION=0.1.10 bash -s -- web
+# 指定版本（默认为 0.1.11）
+curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/install.sh | AIM_VERSION=0.1.11 bash -s -- web
 ```
 
 安装完成后重启 DSH，见[重启并确认](#重启并确认)。
@@ -167,11 +174,11 @@ curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/
 下载并解压：
 
 ```bash
-curl -fL -o dsh-ai-mind-0.1.10-fnos-release.zip \
-  https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-0.1.10-fnos-release.zip
+curl -fL -o dsh-ai-mind-0.1.11-fnos-release.zip \
+  https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.11/dsh-ai-mind-0.1.11-fnos-release.zip
 
-unzip dsh-ai-mind-0.1.10-fnos-release.zip
-cd dsh-ai-mind-0.1.10
+unzip dsh-ai-mind-0.1.11-fnos-release.zip
+cd dsh-ai-mind-0.1.11
 chmod +x install.sh
 ./install.sh web
 ```
@@ -179,10 +186,10 @@ chmod +x install.sh
 GitHub 源把第一行 URL 换成：
 
 ```text
-https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-0.1.10-fnos-release.zip
+https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.11/dsh-ai-mind-0.1.11-fnos-release.zip
 ```
 
-`install.sh` 会依次安装 `vendor/dsh-better-sidebar-0.26.0.tgz`（已安装则跳过）和 `dsh-ai-mind-0.1.10.tgz`。profile 不叫 `web` 时把 `web` 换成实际名称：
+`install.sh` 会依次安装 `vendor/dsh-better-sidebar-0.26.0.tgz`（已安装则跳过）和 `dsh-ai-mind-0.1.11.tgz`。profile 不叫 `web` 时把 `web` 换成实际名称：
 
 ```bash
 ./install.sh <profile>
@@ -193,24 +200,24 @@ https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-
 已经启用 `dsh-better-sidebar` 时：
 
 ```bash
-curl -fL -o dsh-ai-mind-0.1.10.tgz \
-  https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.10/dsh-ai-mind-0.1.10.tgz
+curl -fL -o dsh-ai-mind-0.1.11.tgz \
+  https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.11/dsh-ai-mind-0.1.11.tgz
 
-dsh plugin --profile web add ./dsh-ai-mind-0.1.10.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.11.tgz
 ```
 
 还没装 `dsh-better-sidebar`：
 
 ```bash
 dsh plugin --profile web add dsh-better-sidebar@0.26.0
-dsh plugin --profile web add ./dsh-ai-mind-0.1.10.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.11.tgz
 ```
 
 也可以从完整发布包的 `vendor/` 目录安装离线包：
 
 ```bash
-dsh plugin --profile web add ./dsh-ai-mind-0.1.10/vendor/dsh-better-sidebar-0.26.0.tgz
-dsh plugin --profile web add ./dsh-ai-mind-0.1.10/dsh-ai-mind-0.1.10.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.11/vendor/dsh-better-sidebar-0.26.0.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.11/dsh-ai-mind-0.1.11.tgz
 ```
 
 ### 方式四：从源码安装（开发）
@@ -284,7 +291,7 @@ styles: claimStyles(ownerId, untaggedBefore)
 ## 打包分发
 
 ```bash
-npm pack                 # 生成 dsh-ai-mind-0.1.10.tgz，prepack 会自动重建 lib/client.js
+npm pack                 # 生成 dsh-ai-mind-0.1.11.tgz，prepack 会自动重建 lib/client.js
 ```
 
 发布包（zip）还包含 `dsh-better-sidebar` 安装包、`install.sh`、文章和截图。包内只含 `lib/`、`cordis.patch.yml`、`README.md`、`LICENSE` 和 `package.json`；`src/`、测试不进入 npm 分发包。
