@@ -253,22 +253,18 @@
 }
 
 .aim-phase-tool {
-  max-width: 120px;
-  padding: 2px 7px;
-  overflow: hidden;
-  border: 1px solid color-mix(in srgb, var(--acc) 22%, transparent);
-  border-radius: 99px;
-  background: color-mix(in srgb, var(--acc) 10%, transparent);
+  min-width: 0;
+  max-width: 100%;
   color: var(--acc);
   font-size: 10px;
   font-weight: 600;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+  white-space: normal;
 }
 
 .aim-detail {
   display: -webkit-box;
-  margin-top: 4px;
   overflow: hidden;
   color: var(--muted);
   font-size: 11.5px;
@@ -339,20 +335,17 @@
 .aim-metrics {
   position: relative;
   z-index: 1;
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 6px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 12px;
 }
 
 .aim-metric {
-  display: flex;
-  flex-direction: column;
-  gap: 1px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
   min-width: 0;
-  padding: 7px 8px;
-  border: 1px solid rgba(255, 255, 255, 0.05);
-  border-radius: 10px;
-  background: rgba(255, 255, 255, 0.028);
 }
 
 .aim-metric span {
@@ -368,11 +361,64 @@
 
 .aim-metric b {
   overflow: hidden;
-  font-size: 12px;
+  font-size: 11px;
   font-weight: 650;
   font-variant-numeric: tabular-nums;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+/* Model readout closes the metrics row: same label/value rhythm, so the name
+   no longer inherits the 13px root size and the state reads as a label. */
+.aim-model {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.aim-model i {
+  flex: 0 0 auto;
+  align-self: center;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--dim);
+}
+
+.aim-model[data-state="busy"] i {
+  background: var(--acc2);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc2) 14%, transparent);
+}
+
+.aim-model[data-state="jam"] i {
+  background: var(--bad);
+}
+
+.aim-model-name {
+  overflow: hidden;
+  min-width: 0;
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 650;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aim-model-state {
+  color: var(--dim);
+  font-size: 9px;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+}
+
+.aim-model[data-state="busy"] .aim-model-state {
+  color: var(--acc2);
+}
+
+.aim-model[data-state="jam"] .aim-model-state {
+  color: var(--bad);
 }
 
 .aim-progress {
@@ -1508,10 +1554,6 @@
     padding: 13px 11px 16px;
   }
 
-  .aim-metrics {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-
   .aim-map {
     min-height: 170px;
   }
@@ -1544,8 +1586,8 @@
 
 .aim-hero {
   flex: 0 0 auto;
-  gap: 8px;
-  padding: 11px 12px 10px;
+  gap: 7px;
+  padding: 10px 11px 9px;
 }
 
 .aim-hero-main {
@@ -1557,13 +1599,6 @@
   height: 42px;
 }
 
-.aim-metrics {
-  gap: 5px;
-}
-
-.aim-metric {
-  padding: 5px 7px;
-}
 
 .aim-progress {
   gap: 4px;
@@ -1668,10 +1703,6 @@
     height: 38px;
   }
 
-  .aim-metric {
-    padding: 4px 5px;
-  }
-
   .aim-board {
     grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
     gap: 8px;
@@ -1765,7 +1796,11 @@
   }
 }
 
-@container aim (max-width: 456px) {
+/* The dock seat insets the panel by 1px and the host can round a 480px
+   preference to a 481px panel; leave 4px of slack so the 480px single-column
+   preset never flips to 品型 because of that rounding. The two-column 品型
+   preset is 640px. */
+@container aim (max-width: 460px) {
   .aim-board {
     grid-template-columns: minmax(0, 1fr);
     grid-template-rows: auto minmax(0, 1.2fr) auto minmax(0, 1fr);
@@ -2040,11 +2075,6 @@
   color: #ffffff;
 }
 
-.aim-root[data-aim-theme="light"] .aim-metric {
-  border-color: rgba(15, 23, 42, 0.07);
-  background: rgba(255, 255, 255, 0.62);
-}
-
 .aim-root[data-aim-theme="light"] .aim-bar {
   background: rgba(15, 23, 42, 0.08);
 }
@@ -2242,4 +2272,419 @@ html[data-dcu-official-turn-navigator-supported="true"] .dcu-turn-navigator {
   padding: 0 !important;
   border: 0 !important;
   background: transparent !important;
+}
+
+/* ---------------------------------------------------------------------------
+   Header resilience: the brand and the tool cluster are independent rows when
+   space runs out, and the brand text truncates instead of wrapping under the
+   opaque wallet buttons.
+   --------------------------------------------------------------------------- */
+.aim-head {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
+.aim-brand {
+  flex: 1 1 auto;
+  overflow: hidden;
+}
+
+.aim-mark {
+  flex: 0 0 auto;
+}
+
+.aim-brand-text {
+  overflow: hidden;
+}
+
+.aim-brand-text b,
+.aim-brand-text span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aim-head-actions {
+  margin-left: auto;
+  min-width: 0;
+}
+
+.aim-wallet {
+  min-width: 0;
+}
+
+.aim-balance {
+  min-width: 0;
+}
+
+.aim-balance b {
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+@container aim (max-width: 380px) {
+  .aim-balance-label {
+    display: none;
+  }
+}
+
+/* Model load state lives in the hero header row: dot, route name, current load. */
+.aim-hero-meta {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  max-width: 46%;
+  margin-left: auto;
+  text-align: right;
+}
+
+.aim-hero-model {
+  max-width: 100%;
+  overflow: hidden;
+  color: var(--muted);
+  font-size: 9.5px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.aim-hero-model i {
+  display: inline-block;
+  width: 5px;
+  height: 5px;
+  margin-right: 5px;
+  border-radius: 50%;
+  background: var(--dim);
+  vertical-align: 1px;
+}
+
+.aim-hero-meta[data-state="idle"] .aim-hero-model i {
+  background: var(--good);
+}
+
+.aim-hero-meta[data-state="busy"] .aim-hero-model i {
+  background: var(--acc);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--acc) 16%, transparent);
+  animation: aim-pulse 1.8s infinite;
+}
+
+.aim-hero-meta[data-state="jam"] .aim-hero-model i {
+  background: var(--bad);
+}
+
+.aim-hero-state {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 4px;
+  color: var(--dim);
+  font-size: 8.5px;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.aim-hero-state b {
+  font-size: 10.5px;
+  font-weight: 650;
+}
+
+.aim-hero-meta[data-state="idle"] .aim-hero-state b {
+  color: var(--good);
+}
+
+.aim-hero-meta[data-state="busy"] .aim-hero-state b {
+  color: var(--acc);
+}
+
+.aim-hero-meta[data-state="jam"] .aim-hero-state b {
+  color: var(--bad);
+}
+
+@container aim (max-width: 470px) {
+  .aim-hero-state-label {
+    display: none;
+  }
+}
+
+/* Two-row hold for the hero detail line. */
+.aim-detail-wrap {
+  min-width: 0;
+  margin-top: 4px;
+}
+
+/* ---- settings page ---- */
+.aim-settings {
+  gap: 12px;
+}
+
+.aim-set-head {
+  display: flex;
+  align-items: center;
+  gap: 9px;
+}
+
+.aim-set-back {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  background: var(--panel);
+  color: var(--muted);
+  cursor: pointer;
+  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.aim-set-back:hover {
+  border-color: color-mix(in srgb, var(--acc) 38%, transparent);
+  background: color-mix(in srgb, var(--acc) 9%, transparent);
+  color: var(--text);
+}
+
+.aim-set-title {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.05;
+}
+
+.aim-set-title b {
+  font-size: 15px;
+  font-weight: 650;
+  letter-spacing: 0.1px;
+}
+
+.aim-set-title span {
+  margin-top: 3px;
+  color: var(--dim);
+  font-size: 8.5px;
+  font-weight: 600;
+  letter-spacing: 0.22em;
+}
+
+.aim-set-reset {
+  height: 26px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.aim-set-reset:hover {
+  border-color: color-mix(in srgb, var(--acc) 38%, transparent);
+  background: color-mix(in srgb, var(--acc) 9%, transparent);
+  color: var(--text);
+}
+
+.aim-set-card {
+  gap: 10px;
+}
+
+.aim-set-row {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.aim-set-copy {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+
+.aim-set-copy b {
+  font-size: 12.5px;
+  font-weight: 650;
+}
+
+.aim-set-copy span {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.45;
+}
+
+.aim-switch {
+  position: relative;
+  flex: 0 0 auto;
+  width: 34px;
+  height: 20px;
+  margin-top: 2px;
+  padding: 0;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--panel);
+  cursor: pointer;
+  transition: background 0.18s ease, border-color 0.18s ease;
+}
+
+.aim-switch i {
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  background: var(--muted);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+
+.aim-switch.is-on {
+  border-color: color-mix(in srgb, var(--good) 42%, transparent);
+  background: color-mix(in srgb, var(--good) 15%, transparent);
+}
+
+.aim-switch.is-on i {
+  background: var(--good);
+  transform: translateX(14px);
+}
+
+.aim-set-note {
+  margin: 0;
+  padding: 8px 9px;
+  border: 1px dashed var(--line);
+  border-radius: 9px;
+  color: var(--muted);
+  font-size: 10px;
+  line-height: 1.55;
+}
+
+.aim-set-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.aim-set-label {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.aim-set-label b {
+  color: var(--text);
+  font-size: 11.5px;
+  font-variant-numeric: tabular-nums;
+}
+
+.aim-range {
+  width: 100%;
+  height: 18px;
+  margin: 0;
+  border: 0;
+  background: transparent;
+  accent-color: var(--acc);
+  cursor: pointer;
+}
+
+.aim-set-presets {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.aim-preset {
+  height: 24px;
+  padding: 0 9px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 10px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  cursor: pointer;
+  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.aim-preset:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--acc) 32%, transparent);
+}
+
+.aim-preset.is-on {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--acc) 48%, transparent);
+  background: color-mix(in srgb, var(--acc) 13%, transparent);
+}
+
+/* Two primary layout presets: 480px stacks the board, 640px opens 品型. */
+.aim-layout-switch {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.aim-layout-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  height: 40px;
+  padding: 0 11px;
+  border: 1px solid var(--line);
+  border-radius: 11px;
+  background: var(--panel);
+  color: var(--muted);
+  font-size: 11px;
+  font-weight: 650;
+  cursor: pointer;
+  transition: color 0.16s ease, border-color 0.16s ease, background 0.16s ease;
+}
+
+.aim-layout-option span {
+  color: var(--dim);
+  font-size: 9.5px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.aim-layout-option:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--acc) 32%, transparent);
+}
+
+.aim-layout-option.is-on {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--acc) 48%, transparent);
+  background: color-mix(in srgb, var(--acc) 13%, transparent);
+}
+
+.aim-layout-option.is-on span {
+  color: var(--muted);
+}
+
+.aim-set-hint {
+  margin: 0;
+  color: var(--dim);
+  font-size: 10px;
+  line-height: 1.5;
+}
+
+.aim-set-foot {
+  margin-top: auto;
+  padding-top: 6px;
+  color: var(--dim);
+  font-size: 9px;
+  text-align: center;
+  letter-spacing: 0.03em;
+}
+
+.aim-metric-latency.is-off b {
+  color: var(--dim);
 }

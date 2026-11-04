@@ -36,11 +36,18 @@ const ICONS = {
   sun: ['M12 8a4 4 0 100 8 4 4 0 000-8z', 'M12 2v2', 'M12 20v2', 'M2 12h2', 'M20 12h2', 'M4.9 4.9l1.4 1.4', 'M17.7 17.7l1.4 1.4', 'M19.1 4.9l-1.4 1.4', 'M6.3 17.7l-1.4 1.4'],
   moon: ['M20 14.5A8.5 8.5 0 019.5 4 7 7 0 1020 14.5z'],
   wallet: ['M4 7h16v12H4z', 'M4 10h16', 'M15 14h3v3h-3z'],
+  gear: [
+    'M12 15a3 3 0 100-6 3 3 0 000 6z',
+    'M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 01-2.83 2.83l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-4 0v-.09a1.65 1.65 0 00-1-1.51 1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83-2.83l.06-.06a1.65 1.65 0 00.33-1.82 1.65 1.65 0 00-1.51-1H3a2 2 0 010-4h.09a1.65 1.65 0 001.51-1 1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 012.83-2.83l.06.06a1.65 1.65 0 001.82.33H9a1.65 1.65 0 001-1.51V3a2 2 0 014 0v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 2.83l-.06.06a1.65 1.65 0 00-.33 1.82V9a1.65 1.65 0 001.51 1H21a2 2 0 010 4h-.09a1.65 1.65 0 00-1.51 1z',
+  ],
+  back: ['M15 5l-7 7 7 7'],
 }
 
 const BALANCE_PATH = 'dsh-ai-mind/balance'
+const LATENCY_PATH = 'dsh-ai-mind/latency'
 const TOP_UP_URL = 'https://platform.deepseek.com/top_up'
 const BALANCE_REFRESH_MS = 60_000
+const LATENCY_PROBE_MS = 30_000
 let balanceCache = null
 let balanceRequest = null
 
@@ -66,6 +73,13 @@ function fmtDuration(ms) {
   if (minutes < 60) return `${minutes}:${String(seconds).padStart(2, '0')}`
   const hours = Math.floor(minutes / 60)
   return `${hours}:${String(minutes % 60).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`
+}
+
+function fmtLatency(ms) {
+  const value = Math.max(0, Math.round(Number(ms) || 0))
+  if (!value) return '—'
+  if (value < 1000) return `${value}ms`
+  return `${(value / 1000).toFixed(value < 10_000 ? 1 : 0)}s`
 }
 
 function fmtClock(ms) {
@@ -179,6 +193,127 @@ function useAimTheme() {
   return { mode: state.mode, toggle }
 }
 
+// 380px is the compact single-column width. The 品型 (two-column bento) preset
+// is 640px. The right dock is DSH's and defaults to 45% of the frame, so every
+// 心流 open is pinned to the configured width.
+const PANEL_SINGLE_WIDTH = 380
+const PANEL_DOUBLE_WIDTH = 640
+// The board stacks until its content box passes 460px, so a panel up to 484px
+// is still single-column; the quick switch follows the actual layout.
+const PANEL_SINGLE_LIMIT = 484
+const WIDTH_FLOOR = PANEL_SINGLE_WIDTH
+
+// Per-browser preferences. They belong to the panel, not to a session, so a
+// localStorage record is enough and the host needs no extra settings route.
+const SETTINGS_KEY = 'dsh-ai-mind:settings'
+const PROBE_MIN_SECONDS = 10
+const PROBE_MAX_SECONDS = 600
+const PANEL_MIN_WIDTH = 320
+const PANEL_MAX_WIDTH = 960
+const AIM_DEFAULTS = { probe: true, probeSeconds: 30, width: WIDTH_FLOOR }
+
+function clampNumber(value, min, max, fallback) {
+  const number = Math.round(Number(value))
+  if (!Number.isFinite(number)) return fallback
+  return Math.min(max, Math.max(min, number))
+}
+
+function normalizeSettings(value) {
+  const source = value && typeof value === 'object' ? value : {}
+  return {
+    probe: source.probe !== false,
+    probeSeconds: clampNumber(source.probeSeconds, PROBE_MIN_SECONDS, PROBE_MAX_SECONDS, AIM_DEFAULTS.probeSeconds),
+    width: clampNumber(source.width, PANEL_MIN_WIDTH, PANEL_MAX_WIDTH, AIM_DEFAULTS.width),
+  }
+}
+
+function readSettings() {
+  try {
+    if (typeof localStorage === 'undefined') return normalizeSettings(null)
+    const stored = JSON.parse(localStorage.getItem(SETTINGS_KEY) || 'null')
+    const settings = normalizeSettings(stored)
+    // 480px and 400px were the previous single-column presets.
+    if (stored && (stored.width === 480 || stored.width === 400)) settings.width = PANEL_SINGLE_WIDTH
+    return settings
+  } catch {
+    return normalizeSettings(null)
+  }
+}
+
+function saveSettings(value) {
+  try {
+    if (typeof localStorage !== 'undefined') localStorage.setItem(SETTINGS_KEY, JSON.stringify(value))
+  } catch {
+    // private mode or a full quota: the panel keeps working with defaults
+  }
+}
+
+function useAimSettings() {
+  const [settings, setSettings] = useState(readSettings)
+  useEffect(() => {
+    saveSettings(settings)
+  }, [settings])
+  const update = (patch) => setSettings((previous) => normalizeSettings({ ...previous, ...patch }))
+  return [settings, update]
+}
+
+function dockPanels(ctx) {
+  const readers = [
+    () => ctx?.layout,
+    () => ctx?.get?.('layout'),
+    () => ctx?.reflect?.get?.('layout'),
+    () => ctx?.root?.layout,
+  ]
+  for (const read of readers) {
+    try {
+      const controller = read()
+      const panels = controller?.panels ?? controller?.actions
+      if (panels && typeof panels.setRightbar === 'function') return panels
+    } catch {
+      // try the next access path; uninjected services throw on read
+    }
+  }
+  return null
+}
+
+/**
+ * Pin the dock to the configured opened width. The layout service can still be
+ * missing on the first frames after page load, so retry briefly until it answers.
+ */
+function pinRightWidth(ctx, width = WIDTH_FLOOR, delays = [0, 120, 360, 900, 1600]) {
+  let stopped = false
+  let index = 0
+  let timer = 0
+  const tick = () => {
+    if (stopped) return
+    const panels = dockPanels(ctx)
+    if (panels) {
+      try {
+        panels.setRightbar(width)
+        stopped = true
+        return
+      } catch {
+        // fall through and retry; older hosts may not expose the setter
+      }
+    }
+    index += 1
+    if (index < delays.length) timer = setTimeout(tick, delays[index])
+  }
+  tick()
+  return () => {
+    stopped = true
+    clearTimeout(timer)
+  }
+}
+
+/** Every 心流 open starts at the configured width; a manual drag lasts for that visit. */
+function useWorkspaceWidth(ctx, visible, width = WIDTH_FLOOR) {
+  useEffect(() => {
+    if (visible === false) return undefined
+    return pinRightWidth(ctx, width)
+  }, [ctx, visible, width])
+}
+
 function loadBalance(force) {
   if (!force && balanceCache && Date.now() - balanceCache.at < 60_000) {
     return Promise.resolve(balanceCache.value)
@@ -199,6 +334,23 @@ function loadBalance(force) {
       balanceRequest = null
     })
   return balanceRequest
+}
+
+function loadModelLatency(model, signal) {
+  const query = `?model=${encodeURIComponent(model)}`
+  return fetch(`${LATENCY_PATH}${query}`, {
+    cache: 'no-store',
+    headers: { Accept: 'application/json' },
+    signal,
+  }).then(async (response) => {
+    const data = await response.json().catch(() => null)
+    if (!response.ok || !data?.ok) {
+      const error = new Error(data?.reason || `HTTP ${response.status}`)
+      error.reason = data?.reason || 'http'
+      throw error
+    }
+    return data
+  })
 }
 
 function useDeepSeekBalance() {
@@ -241,6 +393,224 @@ function useDeepSeekBalance() {
   }, [])
 
   return state
+}
+
+function useModelProbe(model, visible, intervalMs = LATENCY_PROBE_MS) {
+  const [state, setState] = useState({ status: 'idle' })
+
+  useEffect(() => {
+    if (!model || visible === false) return undefined
+    setState((prev) => (prev.status === 'ready' ? prev : { status: 'loading' }))
+    let alive = true
+    let busy = false
+    let controller = null
+    const sample = () => {
+      if (!alive || busy) return
+      if (typeof document !== 'undefined' && document.visibilityState === 'hidden') return
+      busy = true
+      controller = typeof AbortController === 'function' ? new AbortController() : null
+      loadModelLatency(model, controller?.signal)
+        .then((data) => {
+          if (!alive) return
+          const ms = Number(data?.ms)
+          if (ms > 0) setState({ status: 'ready', ms, at: Number(data.at) || Date.now() })
+          else setState({ status: 'error', reason: 'protocol' })
+        })
+        .catch((error) => {
+          if (!alive || error?.name === 'AbortError') return
+          setState({ status: 'error', reason: error?.reason || 'network' })
+        })
+        .finally(() => {
+          busy = false
+        })
+    }
+    sample()
+    const timer = setInterval(sample, intervalMs)
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') sample()
+    }
+    document.addEventListener('visibilitychange', onVisible)
+    return () => {
+      alive = false
+      clearInterval(timer)
+      controller?.abort()
+      document.removeEventListener('visibilitychange', onVisible)
+    }
+  }, [model, visible, intervalMs])
+
+  return state
+}
+
+function AimSettings({ settings, update, theme, onClose }) {
+  const hourly = Math.round(3600 / settings.probeSeconds)
+  const presets = [15, 30, 60, 120]
+  const widths = [380, 640, 720, 900]
+  return h(
+    'div',
+    { className: 'aim-root aim-settings', 'data-aim-theme': theme },
+    h(
+      'header',
+      { className: 'aim-set-head' },
+      h(
+        'button',
+        { type: 'button', className: 'aim-set-back', onClick: onClose, title: '返回心流', 'aria-label': '返回心流' },
+        h(Icon, { name: 'back', size: 15 }),
+      ),
+      h('div', { className: 'aim-set-title' }, h('b', null, '设置'), h('span', null, 'AI MIND SETTINGS')),
+      h(
+        'button',
+        { type: 'button', className: 'aim-set-reset', onClick: () => update(AIM_DEFAULTS) },
+        '恢复默认',
+      ),
+    ),
+
+    h(
+      'section',
+      { className: 'aim-card aim-set-card' },
+      h(
+        'div',
+        { className: 'aim-set-row' },
+        h(
+          'div',
+          { className: 'aim-set-copy' },
+          h('b', null, '实时延时探测'),
+          h('span', null, '仅在模型工作时定时请求当前模型，测量真实响应延时'),
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            role: 'switch',
+            className: cx('aim-switch', settings.probe && 'is-on'),
+            'aria-checked': settings.probe,
+            onClick: () => update({ probe: !settings.probe }),
+            title: settings.probe ? '关闭延时探测' : '开启延时探测',
+          },
+          h('i'),
+        ),
+      ),
+      h(
+        'p',
+        { className: 'aim-set-note' },
+        '开启后每次只生成 1 个 token（max_tokens=1），用于测量当前模型的真实延时；请求本身会计入极少量输入 token，费用可忽略。',
+      ),
+      settings.probe
+        ? h(
+            'div',
+            { className: 'aim-set-field' },
+            h(
+              'div',
+              { className: 'aim-set-label' },
+              h('span', null, '采集间隔'),
+              h('b', null, `${settings.probeSeconds} 秒`),
+            ),
+            h('input', {
+              type: 'range',
+              className: 'aim-range',
+              min: PROBE_MIN_SECONDS,
+              max: PROBE_MAX_SECONDS,
+              step: 5,
+              value: settings.probeSeconds,
+              'aria-label': '采集间隔（秒）',
+              onChange: (event) => update({ probeSeconds: Number(event.target.value) }),
+            }),
+            h(
+              'div',
+              { className: 'aim-set-presets' },
+              presets.map((seconds) =>
+                h(
+                  'button',
+                  {
+                    key: seconds,
+                    type: 'button',
+                    className: cx('aim-preset', settings.probeSeconds === seconds && 'is-on'),
+                    onClick: () => update({ probeSeconds: seconds }),
+                  },
+                  `${seconds}s`,
+                ),
+              ),
+            ),
+            h('p', { className: 'aim-set-hint' }, `模型工作时每小时最多约 ${hourly} 次；空闲与页面隐藏时暂停。`),
+          )
+        : h('p', { className: 'aim-set-hint' }, '已关闭：不会向模型发出任何探测请求。'),
+    ),
+
+    h(
+      'section',
+      { className: 'aim-card aim-set-card' },
+      h(
+        'div',
+        { className: 'aim-set-copy' },
+        h('b', null, '快速布局'),
+        h('span', null, '一键切换单列阅读或双列品型'),
+      ),
+      h(
+        'div',
+        { className: 'aim-layout-switch' },
+        h(
+          'button',
+          {
+            type: 'button',
+            className: cx('aim-layout-option', settings.width <= PANEL_SINGLE_LIMIT && 'is-on'),
+            'aria-pressed': settings.width <= PANEL_SINGLE_LIMIT,
+            onClick: () => update({ width: PANEL_SINGLE_WIDTH }),
+          },
+          h('b', null, '单列'),
+          h('span', null, `${PANEL_SINGLE_WIDTH}px`),
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            className: cx('aim-layout-option', settings.width > PANEL_SINGLE_LIMIT && 'is-on'),
+            'aria-pressed': settings.width > PANEL_SINGLE_LIMIT,
+            onClick: () => update({ width: PANEL_DOUBLE_WIDTH }),
+          },
+          h('b', null, '双列'),
+          h('span', null, `${PANEL_DOUBLE_WIDTH}px`),
+        ),
+      ),
+      h(
+        'div',
+        { className: 'aim-set-label' },
+        h('span', null, '打开宽度'),
+        h('b', null, `${settings.width}px`),
+      ),
+      h('input', {
+        type: 'range',
+        className: 'aim-range',
+        min: PANEL_MIN_WIDTH,
+        max: PANEL_MAX_WIDTH,
+        step: 10,
+        value: settings.width,
+        'aria-label': '打开宽度（像素）',
+        onChange: (event) => update({ width: Number(event.target.value) }),
+      }),
+      h(
+        'div',
+        { className: 'aim-set-presets' },
+        widths.map((width) =>
+          h(
+            'button',
+            {
+              key: width,
+              type: 'button',
+              className: cx('aim-preset', settings.width === width && 'is-on'),
+              onClick: () => update({ width }),
+            },
+            `${width}px`,
+          ),
+        ),
+      ),
+      h(
+        'p',
+        { className: 'aim-set-hint' },
+        '单列 380px 是紧凑的单列宽度；双列 640px 展开品型两栏。也可拖动滑杆自定义，实际宽度受宿主可用空间限制。',
+      ),
+    ),
+
+    h('footer', { className: 'aim-set-foot' }, `AI 心流 v${PLUGIN_VERSION} · 设置保存在本机浏览器`),
+  )
 }
 
 function walletDisplay(data) {
@@ -286,13 +656,15 @@ function useSessionMind(ctx, sessionId, visible) {
         setError(cause?.message ? String(cause.message) : '读取会话事件失败')
       }
       let running = false
+      let selection = null
       try {
         const info = ctx.sessions?.list?.getSnapshot?.()?.byId?.[sessionId]
         running = Boolean(info?.running)
+        selection = info?.projectionValues?.modelSelection || null
       } catch {
         // running is best-effort; the event window still drives the panel
       }
-      dataRef.current = { entries, running }
+      dataRef.current = { entries, running, selection }
       setReady(true)
       setTick((value) => value + 1)
     }
@@ -374,6 +746,7 @@ function useSessionMind(ctx, sessionId, visible) {
     if (!ready) return emptyMind()
     return deriveMind(dataRef.current.entries, {
       running: dataRef.current.running,
+      selection: dataRef.current.selection,
       now: Date.now(),
     })
   }, [ready, tick, sessionId])
@@ -642,14 +1015,55 @@ function FlowFeed({ items, thoughtLive, innerRef, onScroll }) {
   )
 }
 
+const DETAIL_HOLD_MS = 15_000
+const MODEL_JAM_MS = 12_000
+
+/**
+ * Whether the detail line recently needed two rows. Keep the two-row height for
+ * a grace period after the latest wrap, so a streaming sentence that alternates
+ * between one and two lines stops pumping the whole panel height.
+ */
+function useDetailHold(text, ref, ready) {
+  const [reserve, setReserve] = useState(0)
+  const timer = useRef(0)
+
+  useEffect(() => () => clearTimeout(timer.current), [])
+
+  useEffect(() => {
+    if (!ready) return undefined
+    const el = ref.current
+    if (!el) return undefined
+    const style = getComputedStyle(el)
+    const line = parseFloat(style.lineHeight) || 0
+    if (!line) return undefined
+    if (Number(style.webkitLineClamp) === 1) {
+      clearTimeout(timer.current)
+      setReserve((value) => (value ? 0 : value))
+      return undefined
+    }
+    const rows = Math.round(el.getBoundingClientRect().height / line)
+    if (rows < 2) return undefined
+    const twoRows = line * 2
+    setReserve((value) => (value === twoRows ? value : twoRows))
+    clearTimeout(timer.current)
+    timer.current = setTimeout(() => setReserve(0), DETAIL_HOLD_MS)
+    return undefined
+  }, [text, ready, ref])
+
+  return reserve
+}
+
 function AiMindView(props) {
   const { ctx, scope, visible } = props
   const sessionId = scope?.sessionId
   const { mind, ready, error } = useSessionMind(ctx, sessionId, visible)
   const { mode: theme, toggle: toggleTheme } = useAimTheme()
+  const [settings, updateSettings] = useAimSettings()
+  const [showSettings, setShowSettings] = useState(false)
   const [showProcess, setShowProcess] = useState(false)
   const processRef = useRef(null)
   const thoughtRef = useRef(null)
+  const detailRef = useRef(null)
   const stickRef = useRef(true)
   const flowStickRef = useRef(true)
   const thoughtHistory = Array.isArray(mind.thoughtHistory) ? mind.thoughtHistory : []
@@ -679,6 +1093,12 @@ function AiMindView(props) {
     if (stickRef.current) el.scrollTop = el.scrollHeight
   }, [showProcess, thoughtHistory.length, mind.thought])
 
+  useWorkspaceWidth(ctx, visible, settings.width)
+  // The probe is a real completion request, so it only runs while the task is
+  // working; an idle panel spends no quota. The last reading stays on screen.
+  const working = mind.running || mind.phase === 'acting' || mind.phase === 'thinking' || mind.phase === 'writing'
+  const probe = useModelProbe(mind.model, visible && !showSettings && settings.probe && working, settings.probeSeconds * 1000)
+
   useEffect(() => {
     if (!visible || showProcess) return
     const el = thoughtRef.current
@@ -693,24 +1113,53 @@ function AiMindView(props) {
     showProcess,
   ])
 
-  if (!ready) return h(Skeleton)
-
-  const active = mind.running || mind.phase === 'acting' || mind.phase === 'thinking' || mind.phase === 'writing'
-  const liveSeconds = mind.elapsed
-  const phaseIcon = PHASE_ICON[mind.phase] || 'spark'
   const detailText =
     mind.phase === 'error'
       ? String(mind.detail || '').includes('ToolOutcomeUnknownError')
         ? '工具结果未能确认，等待模型继续处理（ToolOutcomeUnknownError）'
         : mind.detail
       : mind.detail
+  const detailReserve = useDetailHold(detailText, detailRef, ready)
+
+  if (showSettings) {
+    return h(AimSettings, {
+      settings,
+      update: updateSettings,
+      theme,
+      onClose: () => setShowSettings(false),
+    })
+  }
+  if (!ready) return h(Skeleton)
+
+  const active = working
+  const latencyText = fmtLatency(mind.latency)
+  // Load proxy: no model call in flight = idle; a slow latest call = jammed.
+  const modelState = !active ? 'idle' : mind.latency >= MODEL_JAM_MS ? 'jam' : 'busy'
+  const modelStateText = modelState === 'jam' ? '拥堵' : modelState === 'busy' ? '繁忙' : '空闲'
+  const modelName = mind.model || '未识别'
+  // The probe is a one-token completion that runs only while the task is
+  // working, so an idle panel never spends quota. It can be turned off, and
+  // its cadence is adjustable, from the panel settings.
+  const probeOff = !settings.probe
+  const probeText = probeOff ? '关' : probe.status === 'ready' ? fmtLatency(probe.ms) : '—'
+  const probeTitle = probeOff
+    ? '延时探测已关闭，可在设置中开启'
+    : probe.status === 'error'
+      ? `当前模型延时探测暂不可用（${probe.reason}）`
+      : !working
+        ? `模型空闲，已暂停采样${probe.status === 'ready' ? ` · 最近 ${fmtClock(probe.at)} 测得` : ''}`
+        : probe.status === 'ready'
+          ? `模型工作中 · 每 ${settings.probeSeconds} 秒探测一次 · 最近 ${fmtClock(probe.at)} 测得`
+          : `模型工作中 · 每 ${settings.probeSeconds} 秒探测一次当前模型延时`
+  const liveSeconds = mind.elapsed
+  const phaseIcon = PHASE_ICON[mind.phase] || 'spark'
   const pillText = active ? 'LIVE' : mind.phase === 'done' ? 'DONE' : mind.phase === 'error' ? 'ISSUE' : 'IDLE'
   const hasMind = Boolean(mind.prompt || mind.thought || mind.answer || mind.tools.length || timeline.length)
   const progressWidth = mind.progress > 0 ? mind.progress : active && mind.total > 0 ? 4 : 0
 
   return h(
     'div',
-    { className: cx('aim-root', active && 'is-live'), 'data-tone': mind.tone, 'data-phase': mind.phase, 'data-aim-theme': theme },
+    { className: cx('aim-root', active && 'is-live'), 'data-tone': mind.tone, 'data-aim-theme': theme },
     h(
       'header',
       { className: 'aim-head' },
@@ -760,6 +1209,17 @@ function AiMindView(props) {
           {
             type: 'button',
             className: 'aim-theme',
+            onClick: () => setShowSettings(true),
+            title: '设置',
+            'aria-label': '打开设置',
+          },
+          h(Icon, { name: 'gear', size: 14 }),
+        ),
+        h(
+          'button',
+          {
+            type: 'button',
+            className: 'aim-theme',
             onClick: toggleTheme,
             title: theme === 'light' ? '切换到暗色主题' : '切换到亮色主题',
             'aria-label': theme === 'light' ? '切换到暗色主题' : '切换到亮色主题',
@@ -796,7 +1256,11 @@ function AiMindView(props) {
             mind.phaseLabel,
             mind.phase === 'acting' && mind.focus ? h('span', { className: 'aim-phase-tool' }, mind.focus.label) : null,
           ),
-          h('div', { className: 'aim-detail', title: detailText }, detailText || '等待任务开始'),
+          h(
+            'div',
+            { className: 'aim-detail-wrap', style: detailReserve ? { minHeight: `${detailReserve}px` } : undefined },
+            h('div', { ref: detailRef, className: 'aim-detail', title: detailText }, detailText || '等待任务开始'),
+          ),
         ),
       ),
       h(
@@ -814,6 +1278,23 @@ function AiMindView(props) {
           },
           h('span', null, '总 token'),
           h('b', null, mind.phase === 'idle' || !mind.contextTokens ? '—' : fmtTokens(mind.contextTokens)),
+        ),
+        h(
+          'div',
+          {
+            className: 'aim-model',
+            'data-state': modelState,
+            title: `当前模型 ${modelName}${mind.provider ? ` · ${mind.provider}` : ''} · 状态 ${modelStateText} · 最近一次调用延时 ${latencyText}`,
+          },
+          h('i'),
+          h('span', { className: 'aim-model-name' }, modelName),
+          h('b', { className: 'aim-model-state' }, modelStateText),
+        ),
+        h(
+          'div',
+          { className: cx('aim-metric aim-metric-latency', probeOff && 'is-off'), title: probeTitle },
+          h('span', null, '延时'),
+          h('b', null, probeText),
         ),
       ),
       h(
@@ -1080,6 +1561,10 @@ function autoOpen(ctx, disposeRef) {
 
 function apply(ctx) {
   injectStyles()
+
+  // Set the dock preference before the panel can open so the first paint is
+  // already the configured width instead of the host's 45% default.
+  ctx.effect(() => pinRightWidth(ctx, readSettings().width), 'dsh-ai-mind: default panel width')
 
   ctx.effect(() =>
     ctx.betterSidebar.registerTab({

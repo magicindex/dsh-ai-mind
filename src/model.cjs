@@ -327,6 +327,27 @@ function deriveMind(entries, options = {}) {
   let windowUsage = null
   let todos = null
   let lastTodoStep = -1
+  let modelName = ''
+  let modelProvider = ''
+  // The durable selection projection is authoritative even before a request.
+  const selection = options.selection?.next ?? options.selection?.lastUsed
+  if (selection && typeof selection.model === 'string' && selection.model) modelName = selection.model
+  if (selection && typeof selection.provider === 'string' && selection.provider) modelProvider = selection.provider
+  // Otherwise the tail only covers the current turn; an idle session still
+  // knows which model it is configured with from the last durable event.
+  if (!modelName) {
+    for (let i = events.length - 1; i >= 0; i -= 1) {
+      const kind = events[i].type
+      if (kind !== 'model/selection' && kind !== 'request/context') continue
+      const data = events[i].data || {}
+      if (typeof data.model === 'string' && data.model) modelName = data.model
+      if (typeof data.provider === 'string' && data.provider) modelProvider = data.provider
+      break
+    }
+  }
+  let modelLatency = 0
+  let modelLatencyAt = 0
+  let requestAt = 0
   const tools = []
   const byCall = new Map()
   const reasoningHistory = []
@@ -336,6 +357,9 @@ function deriveMind(entries, options = {}) {
     const time = Number(event.time) || 0
     lastEventTime = Math.max(lastEventTime, time)
     if (event.type === 'turn/start') startedAt = time
+    if (event.type === 'request/context') {
+      if (time > 0) requestAt = time
+    }
     if (event.type === 'step/start') {
       if ((data.step || 0) >= step) step = data.step || step
     }
@@ -343,6 +367,11 @@ function deriveMind(entries, options = {}) {
     if (event.type === 'assistant/message') {
       lastAssistant = event
       lastAssistantStep = data.step || 0
+      if (requestAt && time > requestAt) {
+        modelLatency = time - requestAt
+        modelLatencyAt = time
+        requestAt = 0
+      }
       const usage = readUsage(data.usage ?? data.message?.usage)
       totalOutput += usage.output
       windowUsage = usage
@@ -715,6 +744,10 @@ function deriveMind(entries, options = {}) {
     contextOutput: windowUsage?.output || 0,
     contextCache: (windowUsage?.cacheRead || 0) + (windowUsage?.cacheWrite || 0),
     lastEventTime,
+    model: modelName,
+    provider: modelProvider,
+    latency: modelLatency,
+    latencyAt: modelLatencyAt,
     error: lastIsFailure ? lastTool?.error || lastTool?.result || '工具执行失败' : '',
   }
 }
@@ -757,6 +790,10 @@ function emptyMind(overrides = {}) {
     contextOutput: 0,
     contextCache: 0,
     lastEventTime: 0,
+    model: '',
+    provider: '',
+    latency: 0,
+    latencyAt: 0,
     error: '',
     ...overrides,
   }

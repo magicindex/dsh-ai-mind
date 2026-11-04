@@ -21,7 +21,7 @@ const AI_MIND_CSS = ${JSON.stringify(css)};
 
 ${ui}
 
-module.exports = { name: "dsh-ai-mind", inject: ["betterSidebar", "sidebarRight", "sessions"], apply };
+module.exports = { name: "dsh-ai-mind", inject: ["betterSidebar", "sidebarRight", "sessions", "layout"], apply };
 return module.exports;
 }});
 `

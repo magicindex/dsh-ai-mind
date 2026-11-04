@@ -201,6 +201,35 @@ test('exposes the latest context-window usage for the total-token metric', () =>
   assert.equal(mind.contextTokens, 162515)
 })
 
+test('tracks the active model and the latency of the latest model call', () => {
+  const entries = [
+    user('继续推进'),
+    ev('turn/start', { turn: 1 }, 1000),
+    ev('request/context', { provider: 'deepseek-official', model: 'deepseek-flash' }, 1200),
+    ev('assistant/message', {
+      turn: 1, step: 1,
+      message: { role: 'assistant', content: [{ type: 'text', text: '好。' }] },
+    }, 4200),
+    ev('request/context', { provider: 'deepseek-official', model: 'deepseek-flash' }, 5000),
+    ev('assistant/message', {
+      turn: 1, step: 2,
+      message: { role: 'assistant', content: [{ type: 'text', text: '继续。' }] },
+    }, 5600),
+  ]
+  const mind = deriveMind(entries, { now: 6000, running: false })
+  assert.equal(mind.model, 'deepseek-flash')
+  assert.equal(mind.provider, 'deepseek-official')
+  assert.equal(mind.latency, 600)
+  assert.equal(mind.latencyAt, 5600)
+})
+
+test('a session without model events reports an empty link state', () => {
+  const mind = deriveMind([user('你好')], { now: 3000, running: false })
+  assert.equal(mind.model, '')
+  assert.equal(mind.provider, '')
+  assert.equal(mind.latency, 0)
+})
+
 test('turn, step and token totals come from the durable events', () => {
   const entries = [
     ev('turn/start', { turn: 3 }, 1000),
@@ -349,4 +378,31 @@ test('a running write is already visible as live code creation', () => {
   assert.equal(item.live, true)
   assert.equal(item.status, 'running')
   assert.equal(item.language, 'markdown')
+})
+
+test('an idle session keeps the model from durable request context', () => {
+  const entries = [ev('request/context', { model: 'deepseek-v4-pro', provider: 'deepseek' }, 1000)]
+  for (let i = 0; i < 65; i += 1) entries.push(ev('step/start', { step: i + 1 }, 1100 + i))
+  const mind = deriveMind(entries, { now: 9000, running: false })
+  assert.equal(mind.model, 'deepseek-v4-pro')
+  assert.equal(mind.provider, 'deepseek')
+})
+
+test('the latest model selection wins even before it is used', () => {
+  const entries = [
+    ev('request/context', { model: 'deepseek-v4-pro', provider: 'deepseek' }, 1000),
+    ev('model/selection', { model: 'deepseek-flash', provider: 'deepseek' }, 2000),
+  ]
+  const mind = deriveMind(entries, { now: 3000, running: false })
+  assert.equal(mind.model, 'deepseek-flash')
+})
+
+test('the session selection projection names the current model', () => {
+  const mind = deriveMind([], {
+    now: 1000,
+    running: false,
+    selection: { next: { provider: 'deepseek-official', model: 'deepseek-flash' }, lastUsed: null },
+  })
+  assert.equal(mind.model, 'deepseek-flash')
+  assert.equal(mind.provider, 'deepseek-official')
 })
