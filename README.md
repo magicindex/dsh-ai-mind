@@ -1,6 +1,6 @@
 # dsh-ai-mind · AI 心流
 
-作者：**CyberZero** · MIT License · 当前版本：`v0.1.12`
+作者：**CyberZero** · MIT License · 当前版本：`v0.1.13`
 
 DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务进度、思路导图、任务导图**折叠到一页。
 
@@ -30,6 +30,12 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 数据来自 `ctx.sessions` 的会话事件窗（durable event + `assistant/live-chunk`），不调用模型、不在服务端落任何数据。例外是余额查询与延时探测：插件服务端用本机 `DEEPSEEK_API_KEY` 查询官方余额接口（缓存 60 秒），延时探测每次只请求 1 个输出 token、服务端缓存 20 秒，并且只在模型工作时发出；页面每分钟刷新余额，切回页面时立即刷新。仅把币种、金额与延时毫秒数返回浏览器，密钥不下发。
 
 ## 更新日志
+
+### 0.1.13
+
+- **修复 DSH 0.2.1 上余额与延时 404**：0.2.1 移除了 `webRuntime` 服务，宿主侧仍等着它才注册路由，导致 `/dsh-ai-mind/balance` 与 `/dsh-ai-mind/latency` 静默不挂载。改为等待已注入的 `webServer` 后，余额与模型延时恢复显示。
+- **完整包依赖对齐**：发布 zip 的 `vendor/` 换成 `dsh-better-sidebar-0.28.2`（peer 指向 DSH 0.2.1 一代），安装脚本同步；已装更高版本时仍跳过，不会降级。
+- **无界面变更**：`lib/client.js` 与 0.1.12 一致，仅宿主侧路由修复。
 
 ### 0.1.12
 
@@ -127,17 +133,17 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 
 ## 下载
 
-当前版本：`v0.1.12`
+当前版本：`v0.1.13`
 
 | 文件 | 用途 | 大小 | GitHub | Gitea |
 | --- | --- | --- | --- | --- |
-| 完整发布包 | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 5.3 MB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.12/dsh-ai-mind-0.1.12-fnos-release.zip) | [下载](https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.12/dsh-ai-mind-0.1.12-fnos-release.zip) |
-| 纯插件包 | 已装好 `dsh-better-sidebar` 时使用 | 约 45 KB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.12/dsh-ai-mind-0.1.12.tgz) | [下载](https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.12/dsh-ai-mind-0.1.12.tgz) |
+| 完整发布包 | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 5.6 MB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.13/dsh-ai-mind-0.1.13-fnos-release.zip) | [下载](https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.13/dsh-ai-mind-0.1.13-fnos-release.zip) |
+| 纯插件包 | 已装好 `dsh-better-sidebar` 时使用 | 约 46 KB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.13/dsh-ai-mind-0.1.13.tgz) | [下载](https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.13/dsh-ai-mind-0.1.13.tgz) |
 
 发布页：
 
-- GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.12
-- Gitea：https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/tag/v0.1.12
+- GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.13
+- Gitea：https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/tag/v0.1.13
 
 校验值随发布提供，见发布页的 `SHA256SUMS` 附件。
 
@@ -147,7 +153,7 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 
 ### 前置条件
 
-- DSH `0.2.0-rc.2` 左右版本。
+- DSH `0.2.1-rc.5`（0.2.0-rc.2 起同样可用）。
 - 已安装并启用 `dsh-better-sidebar >= 0.26.0`。插件通过它的公开 `registerTab` API 注册右侧页签；一键安装会自动补齐，已安装则跳过，不会降级。
 - 使用**运行 DSH 的同一系统用户**执行安装命令，避免插件文件归属错误。
 - 首次安装 `dsh-better-sidebar` 的传递依赖需要联网。
@@ -169,7 +175,7 @@ curl -fsSL https://raw.githubusercontent.com/magicindex/dsh-ai-mind/main/install
 
 脚本会依次完成：
 
-1. 下载 `v0.1.12` 完整发布包；
+1. 下载 `v0.1.13` 完整发布包；
 2. 下载 `SHA256SUMS` 并校验安装包；
 3. 解压到临时目录；
 4. 安装 `dsh-better-sidebar`（已安装则跳过）；
@@ -187,8 +193,8 @@ curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/
 # 改走 GitHub 源
 curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/install.sh | AIM_MIRROR=github bash -s -- web
 
-# 指定版本（默认为 0.1.12）
-curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/install.sh | AIM_VERSION=0.1.12 bash -s -- web
+# 指定版本（默认为 0.1.13）
+curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/install.sh | AIM_VERSION=0.1.13 bash -s -- web
 ```
 
 安装完成后重启 DSH，见[重启并确认](#重启并确认)。
@@ -198,11 +204,11 @@ curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/
 下载并解压：
 
 ```bash
-curl -fL -o dsh-ai-mind-0.1.12-fnos-release.zip \
-  https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.12/dsh-ai-mind-0.1.12-fnos-release.zip
+curl -fL -o dsh-ai-mind-0.1.13-fnos-release.zip \
+  https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.13/dsh-ai-mind-0.1.13-fnos-release.zip
 
-unzip dsh-ai-mind-0.1.12-fnos-release.zip
-cd dsh-ai-mind-0.1.12
+unzip dsh-ai-mind-0.1.13-fnos-release.zip
+cd dsh-ai-mind-0.1.13
 chmod +x install.sh
 ./install.sh web
 ```
@@ -210,10 +216,10 @@ chmod +x install.sh
 GitHub 源把第一行 URL 换成：
 
 ```text
-https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.12/dsh-ai-mind-0.1.12-fnos-release.zip
+https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.13/dsh-ai-mind-0.1.13-fnos-release.zip
 ```
 
-`install.sh` 会依次安装 `vendor/dsh-better-sidebar-0.26.0.tgz`（已安装则跳过）和 `dsh-ai-mind-0.1.12.tgz`。profile 不叫 `web` 时把 `web` 换成实际名称：
+`install.sh` 会依次安装 `vendor/dsh-better-sidebar-0.28.2.tgz`（已安装则跳过）和 `dsh-ai-mind-0.1.13.tgz`。profile 不叫 `web` 时把 `web` 换成实际名称：
 
 ```bash
 ./install.sh <profile>
@@ -224,24 +230,24 @@ https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.12/dsh-ai-mind-
 已经启用 `dsh-better-sidebar` 时：
 
 ```bash
-curl -fL -o dsh-ai-mind-0.1.12.tgz \
-  https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.12/dsh-ai-mind-0.1.12.tgz
+curl -fL -o dsh-ai-mind-0.1.13.tgz \
+  https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.13/dsh-ai-mind-0.1.13.tgz
 
-dsh plugin --profile web add ./dsh-ai-mind-0.1.12.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.13.tgz
 ```
 
 还没装 `dsh-better-sidebar`：
 
 ```bash
-dsh plugin --profile web add dsh-better-sidebar@0.26.0
-dsh plugin --profile web add ./dsh-ai-mind-0.1.12.tgz
+dsh plugin --profile web add dsh-better-sidebar@0.28.2
+dsh plugin --profile web add ./dsh-ai-mind-0.1.13.tgz
 ```
 
 也可以从完整发布包的 `vendor/` 目录安装离线包：
 
 ```bash
-dsh plugin --profile web add ./dsh-ai-mind-0.1.12/vendor/dsh-better-sidebar-0.26.0.tgz
-dsh plugin --profile web add ./dsh-ai-mind-0.1.12/dsh-ai-mind-0.1.12.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.13/vendor/dsh-better-sidebar-0.28.2.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.13/dsh-ai-mind-0.1.13.tgz
 ```
 
 ### 方式四：从源码安装（开发）
@@ -322,7 +328,7 @@ styles: claimStyles(ownerId, untaggedBefore)
 ## 打包分发
 
 ```bash
-npm pack                 # 生成 dsh-ai-mind-0.1.12.tgz，prepack 会自动重建 lib/client.js
+npm pack                 # 生成 dsh-ai-mind-0.1.13.tgz，prepack 会自动重建 lib/client.js
 ```
 
 发布包（zip）还包含 `dsh-better-sidebar` 安装包、`install.sh`、README 与 `docs/preview.png`。包内只含 `lib/`、`cordis.patch.yml`、`README.md`、`LICENSE` 和 `package.json`；`src/`、测试不进入 npm 分发包。
@@ -341,6 +347,6 @@ npm test         # 纯模型测试（node:test）
 
 ## 兼容性
 
-- DSH `0.2.0-rc.2`
-- `dsh-better-sidebar >= 0.26.0`（使用其公开的 `registerTab` API）
+- DSH `0.2.1-rc.5`（0.2.0-rc.2 起同样可用）
+- `dsh-better-sidebar >= 0.26.0`（使用其公开的 `registerTab` API；DSH 0.2.1 一代建议 0.28.x）
 - 浏览器需支持 `color-mix()`；不支持时仅降低部分半透明层次，不影响功能。

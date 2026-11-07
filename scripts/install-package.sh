@@ -5,7 +5,7 @@ set -euo pipefail
 
 PROFILE="${1:-web}"
 DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SIDEBAR_TGZ="$DIR/vendor/dsh-better-sidebar-0.26.0.tgz"
+SIDEBAR_TGZ="$DIR/vendor/dsh-better-sidebar-0.28.2.tgz"
 AI_MIND_TGZ="$(find "$DIR" -maxdepth 1 -name 'dsh-ai-mind-*.tgz' -print -quit)"
 
 if ! command -v dsh >/dev/null 2>&1; then
@@ -22,7 +22,7 @@ if dsh plugin --profile "$PROFILE" list dsh-better-sidebar 2>/dev/null |
   grep -q 'dsh-better-sidebar@'; then
   echo "[1/2] 已检测到 dsh-better-sidebar，跳过安装，避免降级。"
 else
-  echo "[1/2] 安装 dsh-better-sidebar 0.26.0 ..."
+  echo "[1/2] 安装 dsh-better-sidebar 0.28.2 ..."
   dsh plugin --profile "$PROFILE" add "$SIDEBAR_TGZ"
 fi
 
