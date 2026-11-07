@@ -345,8 +345,36 @@ npm test         # 纯模型测试（node:test）
 - `src/styles.css`：全部样式以 `.aim-root` 作用域隔离，深色玻璃拟态 + 微动效。
 - `lib/client.js`：构建产物，DSH 通过 `/plugins/dsh-ai-mind/client.js` 提供。
 
+## 版本对应关系
+
+面板本身只依赖客户端 API，宿主侧只用两个服务：路由宿主 `webServer` 和请求校验 `connection.requestRejection`。DSH 在 `0.2.1` 移除了早期的 `webRuntime`（余额 / 延时路由曾围栏在它上面），所以按 DSH 版本选插件版本：
+
+| 插件版本 | 支持的 DSH | 说明 |
+| --- | --- | --- |
+| **0.1.13**（当前） | `0.2.0-rc.2`、`0.2.1-rc.x`、`0.2.2-rc.1` | 路由围栏改为 `webServer`，余额与延时在两代 DSH 都注册；已在 `0.2.1-rc.5` 实测 |
+| `0.1.12` | `0.2.0-rc.2` | 已改用 `connection.requestRejection` 校验，但注册前仍等已被移除的 `webRuntime`；在 `0.2.1` 上余额 / 延时静默 404 |
+| `0.1.5`–`0.1.11` | `0.2.0-rc.2` | 用 `webRuntime.trustedHosts` 自行校验请求；`0.2.1` 上余额 / 延时静默 404 |
+| `0.1.4` | `0.2.0-rc.2` | 纯客户端面板，没有宿主路由，不受上述服务变更影响 |
+
+右侧栏页签由 `dsh-better-sidebar` 提供，它按 DSH 版本分代：
+
+| DSH | `dsh-better-sidebar` |
+| --- | --- |
+| `0.2.0-rc.2` | `0.26.x` |
+| `0.2.1-rc.x` | `0.28.x` |
+| `0.2.2-rc.x` | `0.30.x` |
+
+确认本机版本：
+
+```bash
+dsh --version
+dsh plugin --profile web list --depth 0
+```
+
+插件版本不必与 DSH 严格相等，取上表覆盖当前 DSH 的最新一版即可；升级 DSH 前对照一下，避免余额 / 延时静默失效。
+
 ## 兼容性
 
-- DSH `0.2.1-rc.5`（0.2.0-rc.2 起同样可用）
-- `dsh-better-sidebar >= 0.26.0`（使用其公开的 `registerTab` API；DSH 0.2.1 一代建议 0.28.x）
-- 浏览器需支持 `color-mix()`；不支持时仅降低部分半透明层次，不影响功能。
+- 见上方「版本对应关系」；当前 0.1.13 覆盖 DSH `0.2.0-rc.2` / `0.2.1-rc.x` / `0.2.2-rc.1`
+- `dsh-better-sidebar >= 0.26.0`，按 DSH 分代选择（`0.2.1` 一代建议 `0.28.x`）；插件只用其公开的 `registerTab` API
+- 浏览器需支持 `color-mix()`；不支持时仅降低部分半透明层次，不影响功能
