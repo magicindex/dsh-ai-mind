@@ -1451,9 +1451,9 @@ function AiMindView(props) {
       h('span', { className: 'aim-foot-status' }, '会话事件流 · 实时折叠'),
       h(
         'span',
-        { className: 'aim-credit', title: `dsh-ai-mind v${PLUGIN_VERSION} · 作者 CyberZero · MIT License 开源授权` },
+        { className: 'aim-credit', title: `dsh-ai-mind v${PLUGIN_VERSION} · 作者 CyberZero · GPL-3.0 开源授权` },
         h('b', { className: 'aim-version' }, `v${PLUGIN_VERSION}`),
-        ' · CyberZero · MIT License',
+        ' · CyberZero · GPL-3.0',
       ),
       h(
         'span',
