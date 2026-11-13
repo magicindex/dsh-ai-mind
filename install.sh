@@ -1,24 +1,13 @@
 #!/usr/bin/env bash
 # dsh-ai-mind 一键安装脚本
 # 用法：curl -fsSL <install.sh 地址> | bash -s -- [profile]
-# 可选环境变量：AIM_VERSION（默认 0.1.14）、AIM_MIRROR（gitea|github，默认 gitea）
+# 可选环境变量：AIM_VERSION（默认 0.1.14）
 set -euo pipefail
 
 VERSION="${AIM_VERSION:-0.1.14}"
 PROFILE="${1:-web}"
-MIRROR="${AIM_MIRROR:-gitea}"
 ASSET="dsh-ai-mind-${VERSION}-fnos-release.zip"
-GITEA_BASE="https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v${VERSION}"
-GITHUB_BASE="https://github.com/magicindex/dsh-ai-mind/releases/download/v${VERSION}"
-
-case "$MIRROR" in
-  gitea) BASE="$GITEA_BASE" ;;
-  github) BASE="$GITHUB_BASE" ;;
-  *)
-    echo "AIM_MIRROR 只支持 gitea 或 github，当前为：$MIRROR" >&2
-    exit 1
-    ;;
-esac
+BASE="https://github.com/magicindex/dsh-ai-mind/releases/download/v${VERSION}"
 
 for cmd in dsh curl unzip; do
   if ! command -v "$cmd" >/dev/null 2>&1; then
@@ -33,11 +22,11 @@ cleanup() {
 }
 trap cleanup EXIT
 
-echo "下载 dsh-ai-mind ${VERSION}（${MIRROR}）..."
+echo "下载 dsh-ai-mind ${VERSION}..."
 if ! curl -fsSL --retry 2 --connect-timeout 10 \
   -o "$TMP_DIR/$ASSET" "$BASE/$ASSET"; then
   echo "下载失败：$BASE/$ASSET" >&2
-  echo "可改用另一个源重试，例如：... | AIM_MIRROR=github bash -s -- $PROFILE" >&2
+  echo "请检查网络，或配置代理/镜像加速后重试。" >&2
   exit 1
 fi
 

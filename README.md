@@ -65,10 +65,10 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 
 ### 0.1.10
 
-- **一键安装**：新增根目录 `install.sh`，一条命令完成下载、SHA256 校验、解压和安装；默认走 Gitea，`AIM_MIRROR=github` 可切换 GitHub。
+- **一键安装**：新增根目录 `install.sh`，一条命令完成下载、SHA256 校验、解压和安装；从 GitHub Releases 取包，`AIM_VERSION` 可指定版本。
 - **安装脚本**：完整发布包内的 `install.sh` 会检测 `dsh-better-sidebar`，已安装时跳过，避免把较新版本降级到 0.26.0。
 - **README**：重写下载与安装章节，以当前版本的一键安装为默认方式，保留手动安装、纯插件包和源码安装。
-- **发布同步**：Gitea 补齐 0.1.6–0.1.10 的 Release 与安装包，两个平台的下载链接保持一致。
+- **发布同步**：v0.1.6–v0.1.10 的 Release 与安装包已补齐，下载链接保持一致。
 - **无插件行为变更**：`lib/client.js` 与 0.1.9 一致，已装 0.1.9 的用户可按需升级。
 
 ### 0.1.9
@@ -142,19 +142,16 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 
 当前版本：`v0.1.14`
 
-| 文件 | 用途 | 大小 | GitHub | Gitea |
-| --- | --- | --- | --- | --- |
-| 完整发布包 | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 5.6 MB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14-fnos-release.zip) | [下载](https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14-fnos-release.zip) |
-| 纯插件包 | 已装好 `dsh-better-sidebar` 时使用 | 约 59 KB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14.tgz) | [下载](https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14.tgz) |
+| 文件 | 用途 | 大小 | 下载 |
+| --- | --- | --- | --- |
+| 完整发布包 | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 5.6 MB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14-fnos-release.zip) |
+| 纯插件包 | 已装好 `dsh-better-sidebar` 时使用 | 约 59 KB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14.tgz) |
 
-发布页：
-
-- GitHub：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.14
-- Gitea：https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/tag/v0.1.14
+发布页：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.14
 
 校验值随发布提供，见发布页的 `SHA256SUMS` 附件。
 
-> GitHub 适合公网分享；Gitea 为自建实例，国内访问更稳定。GitHub 下载受阻时优先使用 Gitea。
+> 下载与安装均由 GitHub Releases / GitHub Raw 提供。GitHub 访问受限时，请先配置代理或镜像加速再执行同样的命令；安装包可用 `SHA256SUMS` 自行校验。
 
 ## 安装
 
@@ -171,12 +168,6 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 在运行 DSH 的机器上执行，默认安装到 `web` profile：
 
 ```bash
-curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/install.sh | bash -s -- web
-```
-
-GitHub 源（内容相同，二选一）：
-
-```bash
 curl -fsSL https://raw.githubusercontent.com/magicindex/dsh-ai-mind/main/install.sh | bash -s -- web
 ```
 
@@ -191,17 +182,14 @@ curl -fsSL https://raw.githubusercontent.com/magicindex/dsh-ai-mind/main/install
 profile 不叫 `web` 时，把最后的 `web` 换成实际名称：
 
 ```bash
-curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/install.sh | bash -s -- <profile>
+curl -fsSL https://raw.githubusercontent.com/magicindex/dsh-ai-mind/main/install.sh | bash -s -- <profile>
 ```
 
-需要换源或指定版本时：
+需要指定版本时：
 
 ```bash
-# 改走 GitHub 源
-curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/install.sh | AIM_MIRROR=github bash -s -- web
-
 # 指定版本（默认为 0.1.14）
-curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/install.sh | AIM_VERSION=0.1.14 bash -s -- web
+curl -fsSL https://raw.githubusercontent.com/magicindex/dsh-ai-mind/main/install.sh | AIM_VERSION=0.1.14 bash -s -- web
 ```
 
 安装完成后重启 DSH，见[重启并确认](#重启并确认)。
@@ -212,18 +200,12 @@ curl -fsSL https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/raw/branch/main/
 
 ```bash
 curl -fL -o dsh-ai-mind-0.1.14-fnos-release.zip \
-  https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14-fnos-release.zip
+  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14-fnos-release.zip
 
 unzip dsh-ai-mind-0.1.14-fnos-release.zip
 cd dsh-ai-mind-0.1.14
 chmod +x install.sh
 ./install.sh web
-```
-
-GitHub 源把第一行 URL 换成：
-
-```text
-https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14-fnos-release.zip
 ```
 
 `install.sh` 会依次安装 `vendor/dsh-better-sidebar-0.28.2.tgz`（已安装则跳过）和 `dsh-ai-mind-0.1.14.tgz`。profile 不叫 `web` 时把 `web` 换成实际名称：
@@ -238,7 +220,7 @@ https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-
 
 ```bash
 curl -fL -o dsh-ai-mind-0.1.14.tgz \
-  https://gitea.topzero.cn:10241/cyberzero/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14.tgz
+  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14.tgz
 
 dsh plugin --profile web add ./dsh-ai-mind-0.1.14.tgz
 ```
@@ -279,6 +261,16 @@ dsh web
 空白会话（首页 / New task）不会自动打开面板，这是刻意设计，避免无内容的 panel 挤占布局。
 
 ### 常见问题
+
+**一键安装卡在 `curl` 连接阶段**
+
+若所处的网络 IPv6 不可用，`raw.githubusercontent.com` 可能先尝试 IPv6 连接并超时。可在命令里加 `-4` 强制走 IPv4：
+
+```bash
+curl -4 -fsSL https://raw.githubusercontent.com/magicindex/dsh-ai-mind/main/install.sh | bash -s -- web
+```
+
+仍不通时先配置代理，再执行同样的命令。
 
 **`dsh plugin add` 被 `minimumReleaseAge` 拦住**
 
