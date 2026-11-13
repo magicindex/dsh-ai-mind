@@ -1,10 +1,10 @@
 #!/usr/bin/env bash
 # dsh-ai-mind 一键安装脚本
 # 用法：curl -fsSL <install.sh 地址> | bash -s -- [profile]
-# 可选环境变量：AIM_VERSION（默认 0.1.14）
+# 可选环境变量：AIM_VERSION（默认 0.1.15）
 set -euo pipefail
 
-VERSION="${AIM_VERSION:-0.1.14}"
+VERSION="${AIM_VERSION:-0.1.15}"
 PROFILE="${1:-web}"
 ASSET="dsh-ai-mind-${VERSION}-fnos-release.zip"
 BASE="https://github.com/magicindex/dsh-ai-mind/releases/download/v${VERSION}"

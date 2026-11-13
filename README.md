@@ -1,6 +1,6 @@
 # dsh-ai-mind · AI 心流
 
-作者：**CyberZero** · GPL-3.0 License · 当前版本：`v0.1.14`
+作者：**CyberZero** · GPL-3.0 License · 当前版本：`v0.1.15`
 
 DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务进度、思路导图、任务导图**折叠到一页。
 
@@ -30,6 +30,13 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 数据来自 `ctx.sessions` 的会话事件窗（durable event + `assistant/live-chunk`），不调用模型、不在服务端落任何数据。例外是余额查询与延时探测：插件服务端用本机 `DEEPSEEK_API_KEY` 查询官方余额接口（缓存 60 秒），延时探测每次只请求 1 个输出 token、服务端缓存 20 秒，并且只在模型工作时发出；页面每分钟刷新余额，切回页面时立即刷新。仅把币种、金额与延时毫秒数返回浏览器，密钥不下发。
 
 ## 更新日志
+
+### 0.1.15
+
+- **移除自建镜像源**：自建镜像实例与其下载源已下线，README、发布说明与 `install.sh` 中不再出现镜像地址；下载与安装统一走 GitHub Releases / GitHub Raw。
+- **安装脚本单源化**：`install.sh` 去掉 `AIM_MIRROR` 双源开关，固定从 GitHub 取包，`AIM_VERSION` 仍可指定版本。
+- **重新打包**：`dist/` 中的 `dsh-ai-mind-0.1.15.tgz` 与完整发布包 zip 重新生成并更新 `SHA256SUMS`，包内 README 与 `install.sh` 同步为不含镜像地址的版本。
+- **无插件代码变更**：`lib/client.js` 与 0.1.14 一致，仅版本号与文档、打包脚本变化。
 
 ### 0.1.14
 
@@ -140,14 +147,14 @@ DSH 右侧栏插件：把当前会话里 AI 的**实时状态、思路、任务�
 
 ## 下载
 
-当前版本：`v0.1.14`
+当前版本：`v0.1.15`
 
 | 文件 | 用途 | 大小 | 下载 |
 | --- | --- | --- | --- |
-| 完整发布包 | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 5.6 MB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14-fnos-release.zip) |
-| 纯插件包 | 已装好 `dsh-better-sidebar` 时使用 | 约 59 KB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14.tgz) |
+| 完整发布包 | 插件 + `dsh-better-sidebar` + 安装脚本 + README/预览图 | 约 5.6 MB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.15/dsh-ai-mind-0.1.15-fnos-release.zip) |
+| 纯插件包 | 已装好 `dsh-better-sidebar` 时使用 | 约 59 KB | [下载](https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.15/dsh-ai-mind-0.1.15.tgz) |
 
-发布页：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.14
+发布页：https://github.com/magicindex/dsh-ai-mind/releases/tag/v0.1.15
 
 校验值随发布提供，见发布页的 `SHA256SUMS` 附件。
 
@@ -173,7 +180,7 @@ curl -fsSL https://raw.githubusercontent.com/magicindex/dsh-ai-mind/main/install
 
 脚本会依次完成：
 
-1. 下载 `v0.1.14` 完整发布包；
+1. 下载 `v0.1.15` 完整发布包；
 2. 下载 `SHA256SUMS` 并校验安装包；
 3. 解压到临时目录；
 4. 安装 `dsh-better-sidebar`（已安装则跳过）；
@@ -188,8 +195,8 @@ curl -fsSL https://raw.githubusercontent.com/magicindex/dsh-ai-mind/main/install
 需要指定版本时：
 
 ```bash
-# 指定版本（默认为 0.1.14）
-curl -fsSL https://raw.githubusercontent.com/magicindex/dsh-ai-mind/main/install.sh | AIM_VERSION=0.1.14 bash -s -- web
+# 指定版本（默认为 0.1.15）
+curl -fsSL https://raw.githubusercontent.com/magicindex/dsh-ai-mind/main/install.sh | AIM_VERSION=0.1.15 bash -s -- web
 ```
 
 安装完成后重启 DSH，见[重启并确认](#重启并确认)。
@@ -199,16 +206,16 @@ curl -fsSL https://raw.githubusercontent.com/magicindex/dsh-ai-mind/main/install
 下载并解压：
 
 ```bash
-curl -fL -o dsh-ai-mind-0.1.14-fnos-release.zip \
-  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14-fnos-release.zip
+curl -fL -o dsh-ai-mind-0.1.15-fnos-release.zip \
+  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.15/dsh-ai-mind-0.1.15-fnos-release.zip
 
-unzip dsh-ai-mind-0.1.14-fnos-release.zip
-cd dsh-ai-mind-0.1.14
+unzip dsh-ai-mind-0.1.15-fnos-release.zip
+cd dsh-ai-mind-0.1.15
 chmod +x install.sh
 ./install.sh web
 ```
 
-`install.sh` 会依次安装 `vendor/dsh-better-sidebar-0.28.2.tgz`（已安装则跳过）和 `dsh-ai-mind-0.1.14.tgz`。profile 不叫 `web` 时把 `web` 换成实际名称：
+`install.sh` 会依次安装 `vendor/dsh-better-sidebar-0.28.2.tgz`（已安装则跳过）和 `dsh-ai-mind-0.1.15.tgz`。profile 不叫 `web` 时把 `web` 换成实际名称：
 
 ```bash
 ./install.sh <profile>
@@ -219,24 +226,24 @@ chmod +x install.sh
 已经启用 `dsh-better-sidebar` 时：
 
 ```bash
-curl -fL -o dsh-ai-mind-0.1.14.tgz \
-  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.14/dsh-ai-mind-0.1.14.tgz
+curl -fL -o dsh-ai-mind-0.1.15.tgz \
+  https://github.com/magicindex/dsh-ai-mind/releases/download/v0.1.15/dsh-ai-mind-0.1.15.tgz
 
-dsh plugin --profile web add ./dsh-ai-mind-0.1.14.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.15.tgz
 ```
 
 还没装 `dsh-better-sidebar`：
 
 ```bash
 dsh plugin --profile web add dsh-better-sidebar@0.28.2
-dsh plugin --profile web add ./dsh-ai-mind-0.1.14.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.15.tgz
 ```
 
 也可以从完整发布包的 `vendor/` 目录安装离线包：
 
 ```bash
-dsh plugin --profile web add ./dsh-ai-mind-0.1.14/vendor/dsh-better-sidebar-0.28.2.tgz
-dsh plugin --profile web add ./dsh-ai-mind-0.1.14/dsh-ai-mind-0.1.14.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.15/vendor/dsh-better-sidebar-0.28.2.tgz
+dsh plugin --profile web add ./dsh-ai-mind-0.1.15/dsh-ai-mind-0.1.15.tgz
 ```
 
 ### 方式四：从源码安装（开发）
@@ -329,7 +336,7 @@ styles: claimStyles(ownerId, untaggedBefore)
 ## 打包分发
 
 ```bash
-npm pack                 # 生成 dsh-ai-mind-0.1.14.tgz，prepack 会自动重建 lib/client.js
+npm pack                 # 生成 dsh-ai-mind-0.1.15.tgz，prepack 会自动重建 lib/client.js
 ```
 
 发布包（zip）还包含 `dsh-better-sidebar` 安装包、`install.sh`、README 与 `docs/preview.png`。包内只含 `lib/`、`cordis.patch.yml`、`README.md`、`LICENSE` 和 `package.json`；`src/`、测试不进入 npm 分发包。
@@ -352,7 +359,7 @@ npm test         # 纯模型测试（node:test）
 
 | 插件版本 | 支持的 DSH | 说明 |
 | --- | --- | --- |
-| **0.1.14**（当前）/ `0.1.13` | `0.2.0-rc.2`、`0.2.1-rc.x`、`0.2.2-rc.1` | 路由围栏改为 `webServer`，余额与延时在两代 DSH 都注册；已在 `0.2.1-rc.5` 实测 |
+| **0.1.15**（当前）/ `0.1.14` / `0.1.13` | `0.2.0-rc.2`、`0.2.1-rc.x`、`0.2.2-rc.1` | 路由围栏改为 `webServer`，余额与延时在两代 DSH 都注册；已在 `0.2.1-rc.5` 实测 |
 | `0.1.12` | `0.2.0-rc.2` | 已改用 `connection.requestRejection` 校验，但注册前仍等已被移除的 `webRuntime`；在 `0.2.1` 上余额 / 延时静默 404 |
 | `0.1.5`–`0.1.11` | `0.2.0-rc.2` | 用 `webRuntime.trustedHosts` 自行校验请求；`0.2.1` 上余额 / 延时静默 404 |
 | `0.1.4` | `0.2.0-rc.2`（宿主半边为空，无路由依赖） | 纯客户端面板：`lib/index.js` 的 `apply()` 为空，限制只来自客户端 API 与右侧栏版本 |
@@ -376,6 +383,6 @@ dsh plugin --profile web list --depth 0
 
 ## 兼容性
 
-- 见上方「版本对应关系」；当前 0.1.14 覆盖 DSH `0.2.0-rc.2` / `0.2.1-rc.x` / `0.2.2-rc.1`
+- 见上方「版本对应关系」；当前 0.1.15 覆盖 DSH `0.2.0-rc.2` / `0.2.1-rc.x` / `0.2.2-rc.1`
 - `dsh-better-sidebar >= 0.26.0`，按 DSH 分代选择（`0.2.1` 一代建议 `0.28.x`）；插件只用其公开的 `registerTab` API
 - 浏览器需支持 `color-mix()`；不支持时仅降低部分半透明层次，不影响功能
